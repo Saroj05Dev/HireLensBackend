@@ -1,12 +1,24 @@
-import express from 'express';
-import { SERVER_CONFIG } from './config/server.config.js';
-import connectDB from './config/db.config.js';
+import express from "express";
+import { SERVER_CONFIG } from "./config/server.config.js";
+import connectDB from "./config/db.config.js";
+
+import authRoutes from "./routes/auth.routes.js";
+
 const app = express();
 
-app.get('/', (req, res) => {
-  res.send('Hello, Hire Lens Backend!');
+// Middlewares
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+// Routes
+app.get("/", (req, res) => {
+  res.send("Hello, HireLens Backend!");
 });
 
+// Auth routes (register, login later)
+app.use("/api/v1/auth", authRoutes);
+
+// Start the server and connect to the database
 app.listen(SERVER_CONFIG.PORT, async () => {
   console.log(`Server is running on port ${SERVER_CONFIG.PORT}`);
   await connectDB();

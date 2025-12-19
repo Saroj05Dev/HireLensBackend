@@ -11,10 +11,10 @@ const organizationSchema = new mongoose.Schema({
     ownerId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: "User",
-        required: true,
+        default: null
     }
 }, {
     timestamps: true
 });
 
-module.exports = mongoose.model("Organization", organizationSchema);
+export default mongoose.model("Organization", organizationSchema);
