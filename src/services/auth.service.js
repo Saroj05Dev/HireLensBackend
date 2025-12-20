@@ -12,7 +12,8 @@ export const register = async ({
     password,
     organizationName
 }) => {
-    const session = await mongoose.startSession(); // Start a session for transaction
+    // Start a session for transaction
+    const session = await mongoose.startSession();
     session.startTransaction();
 
     try {
@@ -43,7 +44,7 @@ export const register = async ({
         await organizationRepository.updateOwner(
             organization._id,
             user._id,
-            session
+            session // pass the session to ensure it's part of the transaction
         );
 
         // 6. Generate tokens
@@ -52,7 +53,7 @@ export const register = async ({
             role: user.role,
             organizationId: user.organizationId
         });
-
+        // Commit transaction
         await session.commitTransaction();
         session.endSession();
 
@@ -67,8 +68,44 @@ export const register = async ({
             tokens
         };
     } catch (error) {
+        // Rollback transaction in case of error
         await session.abortTransaction();
         session.endSession();
         throw error;
     }
 }
+
+export const login = async ({ email, password }) => {
+    if (!email || !password) {
+        throw ApiError(400, "Email and password are required");
+    }
+
+    // Find user + password
+    const user = await userRepository.findByEmailWithPassword(email);
+    if (!user) {
+        throw ApiError(401, "Invalid email or password");
+    }
+    
+    // Compare password
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) {
+        throw new ApiError(401, "Invalid email or password");
+    }
+
+    // Generate tokens
+    const tokens = generateToken({
+        userId: user._id,
+        role: user.role,
+        organizationId: user.organizationId
+    });
+
+    // Return safe data only
+    return {
+        user: {
+            id: user._id,
+            role: user.role,
+            organizationId: user.organizationId
+        },
+        tokens
+    };
+};

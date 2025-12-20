@@ -13,3 +13,32 @@ export const register = async (req, res, next) => {
         next(error);
     }
 };
+
+export const login = async (req, res, next) => {
+    try {
+        const { user, tokens } = await authService.login(req.body);
+
+        // Set httpOnly cookies
+        res.cookie("accessToken", tokens.accessToken, {
+            httpOnly: true,
+            sameSite: "strict",
+            secure: process.env.NODE_ENV === "production",
+            maxAge: 15 * 60 * 1000, // 15 minutes
+        });
+
+        res.cookie("refreshToken", tokens.refreshToken, {
+            httpOnly: true,
+            sameSite: "strict",
+            secure: process.env.NODE_ENV === "production",
+            maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+        });
+
+        return res.status(200).json({
+            success: true,
+            data: user,
+            message: "Login successful",
+        })
+    } catch (error) {
+        next(error);
+    }
+}
