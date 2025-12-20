@@ -42,3 +42,34 @@ export const login = async (req, res, next) => {
         next(error);
     }
 }
+
+export const logout = async (req, res, next) => {
+    res.clearCookie("accessToken");
+    res.clearCookie("refreshToken");
+
+    return res.status(200).json({
+        success: true,
+        message: "Logout successful",
+    });
+}
+
+export const refresh = async (req, res, next) => {
+    try {
+        const token = await authService.refresh(req.cookies);
+
+        // Set new access token cookie
+        res.cookie("accessToken", token.accessToken, {
+            httpOnly: true,
+            sameSite: "strict",
+            secure: process.env.NODE_ENV === "production",
+            maxAge: 15 * 60 * 1000, // 15 minutes
+        });
+
+        return res.status(200).json({
+            success: true,
+            message: "Token refreshed successfully",
+        });
+    } catch (error) {
+        next(error);
+    }
+}

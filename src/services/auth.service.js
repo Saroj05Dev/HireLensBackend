@@ -109,3 +109,32 @@ export const login = async ({ email, password }) => {
         tokens
     };
 };
+
+export const refresh = async (cookies) => {
+    const refreshToken = cookies?.refreshToken;
+
+    if (!refreshToken) {
+        throw new ApiError(401, "Refresh token not found");
+    }
+
+    try {
+        // Verify refresh token
+        const decoded = jwt.verify(
+            refreshToken,
+            process.env.JWT_REFRESH_SECRET
+        );
+
+        // Issue new access token
+        const newAccessToken = generateToken({
+            userId: decoded.userId,
+            role: decoded.role,
+            organizationId: decoded.organizationId
+        }).accessToken;
+
+        return {
+            accessToken: newAccessToken
+        };
+    } catch (error) {
+        throw new ApiError(401, "Invalid or expired refresh token");
+    }
+}
