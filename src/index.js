@@ -24,6 +24,21 @@ app.use("/api/v1/auth", authRoutes);
 app.use("/api/v1/jobs", jobRoutes);
 app.use("/api/v1/organizations", organizationRoutes);
 
+// Global Error Handler (must be after all routes)
+app.use((err, req, res, next) => {
+  const statusCode = err.statusCode || 500;
+  const message = err.message || "Internal Server Error";
+
+  // Log error for debugging
+  console.error(`[ERROR] ${statusCode}: ${message}`, err);
+
+  res.status(statusCode).json({
+    success: false,
+    message: message,
+    ...(process.env.NODE_ENV === "development" && { stack: err.stack }),
+  });
+});
+
 // Start the server and connect to the database
 app.listen(SERVER_CONFIG.PORT, async () => {
   console.log(`Server is running on port ${SERVER_CONFIG.PORT}`);

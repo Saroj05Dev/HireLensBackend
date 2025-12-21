@@ -1,29 +1,17 @@
 import express from "express";
 import auth from "../middlewares/auth.middleware.js";
 import role from "../middlewares/role.middleware.js";
+import { createJob, getJobs, closeJob } from "../controllers/job.controller.js";
 
 const router = express.Router();
 
-// Only ADMIN & RECRUITER can create jobs
-router.post(
-  "/",
-  auth,
-  role("ADMIN", "RECRUITER"),
-  (req, res) => {
-    res.json({
-      success: true,
-      message: "Job created",
-      createdBy: req.user.id
-    });
-  }
-);
+// Create job - Only ADMIN & RECRUITER
+router.post("/", auth, role("ADMIN", "RECRUITER"), createJob);
 
-// Any authenticated user can view jobs
-router.get("/", auth, (req, res) => {
-  res.json({
-    success: true,
-    message: "Jobs fetched"
-  });
-});
+// Get all jobs for organization - Only ADMIN & RECRUITER
+router.get("/", auth, role("ADMIN", "RECRUITER"), getJobs);
+
+// Close job - Only ADMIN & RECRUITER
+router.patch("/:jobId/close", auth, role("ADMIN", "RECRUITER"), closeJob);
 
 export default router;
