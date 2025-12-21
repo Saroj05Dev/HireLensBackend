@@ -1,4 +1,5 @@
 import jwt from "jsonwebtoken";
+import bcrypt from "bcryptjs";
 import { SERVER_CONFIG } from "../config/server.config.js";
 import ApiError from "../utils/ApiError.js";
 import * as userRepository from "../repositories/user.repository.js";
@@ -48,3 +49,66 @@ export const inviteUser = async (
         inviteToken // v1: return token directly, v2: send via email
     };
 }
+
+export const acceptInvite = async ({
+    token,
+    name,
+    password
+}) => {
+    if (!token || !name || !password) {
+        throw new ApiError(400, 'Token, name and password are required to accept invitation');
+    }
+
+    let decoded;
+    try {
+        decoded = jwt.verify(token, SERVER_CONFIG.JWT_ACCESS_SECRET);
+    } catch (error) {
+        throw new ApiError(401, 'Invalid or expired invitation token');
+    }
+
+    const { userId, organizationId } = decoded;
+
+    // Fetch invited user
+    const user = await userRepository.findById(userId)
+    if (!user) {
+        throw new ApiError(404, 'Invited user not found');
+    }
+
+    if (user.isActive) {
+        throw new ApiError(400, 'Invitation already accepted');
+    }
+
+    if (user.organizationId.toString() !== organizationId) {
+        throw new ApiError(400, 'Token organization mismatch');
+    }
+
+    // Activate user account
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    user.name = name;
+    user.password = hashedPassword;
+    user.isActive = true;
+
+    await user.save();
+
+    return {
+        user: {
+            id: user._id,
+            email: user.email,
+            role: user.role
+        }
+    };
+};
+
+export const getOrganizationMembers = async (organizationId) => {
+  const users = await userRepository.findByOrganizationId(organizationId);
+
+  return users.map(user => ({
+    id: user._id,
+    name: user.name,
+    email: user.email,
+    role: user.role,
+    isActive: user.isActive,
+    createdAt: user.createdAt
+  }));
+};

@@ -5,9 +5,19 @@ export const findByEmail = async (email) => {
   return user;
 };
 
+export const findById = async (id) => {
+  return User.findById(id);
+};
+
 export const findByEmailWithPassword = async (email) => {
   const user = await User.findOne({ email }).select("+password");
   return user;
+};
+
+export const findByOrganizationId = async (organizationId) => {
+  return User.find({ organizationId })
+    .select("_id name email role isActive createdAt")
+    .sort({ createdAt: -1 });
 };
 
 export const create = async (data, session) => {
