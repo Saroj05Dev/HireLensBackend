@@ -5,8 +5,10 @@ const USER_ROLE = ["ADMIN", "RECRUITER", "INTERVIEWER"];
 const userSchema = new mongoose.Schema({
     name: {
         type: String,
-        required: true,
-        trim: true
+        trim: true,
+        required: function() {
+            return this.isActive === true;
+        }
     },
 
     email: {
@@ -19,8 +21,10 @@ const userSchema = new mongoose.Schema({
 
     password: {
         type: String,
-        required: true,
-        select: false // Exclude password from query results by default
+        select: false, // Exclude password from query results by default
+        required: function() {
+            return this.isActive === true;
+        }
     },
 
     role: {

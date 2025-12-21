@@ -5,6 +5,7 @@ import connectDB from "./config/db.config.js";
 
 import authRoutes from "./routes/auth.routes.js";
 import jobRoutes from "./routes/job.routes.js";
+import organizationRoutes from "./routes/organization.route.js";
 
 const app = express();
 
@@ -21,6 +22,7 @@ app.get("/", (req, res) => {
 // Auth routes (register, login later)
 app.use("/api/v1/auth", authRoutes);
 app.use("/api/v1/jobs", jobRoutes);
+app.use("/api/v1/organizations", organizationRoutes);
 
 // Start the server and connect to the database
 app.listen(SERVER_CONFIG.PORT, async () => {
