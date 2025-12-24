@@ -41,3 +41,21 @@ export const getCandidateProfile = async (req, res, next) => {
         next(error);
     }
 }
+
+export const updateCandidateStage = async (req, res, next) => {
+  try {
+    const result = await candidateService.updateCandidateStage(
+      req.user,
+      req.params.candidateId,
+      req.body
+    );
+
+    res.json({
+      success: true,
+      data: result,
+      message: "Candidate stage updated"
+    });
+  } catch (error) {
+    next(error);
+  }
+};

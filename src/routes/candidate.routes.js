@@ -1,7 +1,12 @@
 import express from 'express';
 import auth from '../middlewares/auth.middleware.js';
 import role from '../middlewares/role.middleware.js';
-import { addCandidate, getCandidatesByJob, getCandidateProfile } from '../controllers/candidate.controller.js';
+import { 
+  addCandidate, 
+  getCandidatesByJob, 
+  getCandidateProfile, 
+  updateCandidateStage 
+} from '../controllers/candidate.controller.js';
 
 const router = express.Router();
 
@@ -25,6 +30,13 @@ router.get(
   auth,
   role("ADMIN", "RECRUITER", "INTERVIEWER"),
   getCandidateProfile
+);
+
+router.patch(
+  "/:candidateId/stage",
+  auth,
+  role("RECRUITER"),
+  updateCandidateStage
 );
 
 export default router;

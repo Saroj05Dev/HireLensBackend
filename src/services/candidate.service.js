@@ -1,6 +1,8 @@
+import mongoose from "mongoose";
 import ApiError from "../utils/ApiError.js";
 import * as candidateRepository from "../repositories/candidate.repository.js";
 import * as jobRepository from "../repositories/job.repository.js";
+import * as decisionLogRepository from "../repositories/decisionLog.repository.js";
 
 export const addCandidate = async (user, payload) => {
     const { jobId, name, email, phone, resumeUrl } = payload;
@@ -43,4 +45,80 @@ export const getCandidateProfile = async (user, candidateId) => {
     }
 
     return candidate;
+};
+
+const VALID_STAGES = [
+  "APPLIED",
+  "SCREENING",
+  "INTERVIEW",
+  "OFFER",
+  "HIRED",
+  "REJECTED"
+];
+
+export const updateCandidateStage = async (
+  user,
+  candidateId,
+  { newStage, note }
+) => {
+  if (!VALID_STAGES.includes(newStage)) {
+    throw new ApiError(400, "Invalid stage");
+  }
+
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
+  try {
+    // 1 Fetch candidate
+    const candidate = await candidateRepository.findById(
+      candidateId,
+      session
+    );
+
+    if (
+      !candidate ||
+      candidate.organizationId.toString() !== user.organizationId
+    ) {
+      throw new ApiError(404, "Candidate not found");
+    }
+
+    const fromStage = candidate.currentStage;
+
+    // 2 Prevent no-op updates
+    if (fromStage === newStage) {
+      throw new ApiError(400, "Candidate already in this stage");
+    }
+
+    // 3 Update candidate stage
+    candidate.currentStage = newStage;
+    await candidate.save({ session });
+
+    // 4 Create decision log
+    await decisionLogRepository.create(
+      {
+        organizationId: user.organizationId,
+        candidateId: candidate._id,
+        jobId: candidate.jobId,
+        actionType: "STAGE_CHANGE",
+        performedBy: user.id,
+        fromStage,
+        toStage: newStage,
+        note
+      },
+      session
+    );
+
+    await session.commitTransaction();
+    session.endSession();
+
+    return {
+      candidateId: candidate._id,
+      fromStage,
+      toStage: newStage
+    };
+  } catch (error) {
+    await session.abortTransaction();
+    session.endSession();
+    throw error;
+  }
 };

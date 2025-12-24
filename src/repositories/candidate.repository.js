@@ -10,6 +10,13 @@ export const findByJobId = async (jobId) => {
   return Candidate.find({ jobId }).sort({ createdAt: -1 });
 };
 
-export const findById = async (candidateId) => {
-  return Candidate.findById(candidateId);
+export const findById = async (candidateId, session) => {
+  const query = Candidate.findById(candidateId);
+
+  // attach session only if provided
+  if (session) {
+    query.session(session);
+  }
+
+  return query;
 };
