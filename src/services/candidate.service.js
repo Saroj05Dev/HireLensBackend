@@ -110,9 +110,10 @@ export const updateCandidateStage = async (
     );
 
     await session.commitTransaction();
+    session.endSession();
 
     const io = getIO();
-
+    // Stage update event
     io.to(`org:${user.organizationId}`).emit("candidate:stage-updated", {
       candidateId: candidate._id,
       jobId: candidate.jobId,
@@ -122,7 +123,17 @@ export const updateCandidateStage = async (
       updatedAt: new Date(),
     });
 
-    session.endSession();
+    // Decision log event
+    io.to(`org:${user.organizationId}`).emit("decision:created", {
+      type: "STAGE_CHANGE",
+      candidateId: candidate._id,
+      jobId: candidate.jobId,
+      performedBy: user.id,
+      fromStage,
+      toStage: newStage,
+      note,
+      createdAt: new Date(),
+    });
 
     return {
       candidateId: candidate._id,
@@ -134,4 +145,26 @@ export const updateCandidateStage = async (
     session.endSession();
     throw error;
   }
+};
+
+
+export const getCandidateDecisionLogs = async (user, candidateId) => {
+  const candidate = await candidateRepository.findById(candidateId);
+
+  if (
+    !candidate ||
+    candidate.organizationId.toString() !== user.organizationId
+  ) {
+    throw new ApiError(404, "Candidate not found");
+  }
+
+  const logs = await decisionLogRepository.findByCandidateId(candidateId);
+
+  return logs.map(log => ({
+    action: log.actionType,
+    from: log.fromStage,
+    to: log.toStage,
+    by: log.performedBy?.name || "System",
+    timestamp: log.createdAt
+  }));
 };

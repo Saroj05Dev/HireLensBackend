@@ -5,7 +5,8 @@ import {
   addCandidate, 
   getCandidatesByJob, 
   getCandidateProfile, 
-  updateCandidateStage 
+  updateCandidateStage,
+  getCandidateDecisionLogs
 } from '../controllers/candidate.controller.js';
 
 const router = express.Router();
@@ -37,6 +38,13 @@ router.patch(
   auth,
   role("RECRUITER"),
   updateCandidateStage
+);
+
+router.get(
+  "/:candidateId/decision-logs",
+  auth,
+  role("ADMIN", "RECRUITER", "INTERVIEWER"),
+  getCandidateDecisionLogs
 );
 
 export default router;

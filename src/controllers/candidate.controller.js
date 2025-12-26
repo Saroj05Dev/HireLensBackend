@@ -59,3 +59,19 @@ export const updateCandidateStage = async (req, res, next) => {
     next(error);
   }
 };
+
+export const getCandidateDecisionLogs = async (req, res, next) => {
+  try {
+    const logs = await candidateService.getCandidateDecisionLogs(
+      req.user,
+      req.params.candidateId
+    );
+
+    res.json({
+      success: true,
+      data: logs
+    });
+  } catch (error) {
+    next(error);
+  }
+};
