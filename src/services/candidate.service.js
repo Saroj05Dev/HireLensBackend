@@ -1,50 +1,54 @@
 import mongoose from "mongoose";
 import ApiError from "../utils/ApiError.js";
+import { getIO } from "../config/socket.js";
 import * as candidateRepository from "../repositories/candidate.repository.js";
 import * as jobRepository from "../repositories/job.repository.js";
 import * as decisionLogRepository from "../repositories/decisionLog.repository.js";
 
 export const addCandidate = async (user, payload) => {
-    const { jobId, name, email, phone, resumeUrl } = payload;
+  const { jobId, name, email, phone, resumeUrl } = payload;
 
-    if(!jobId || !name) {
-        throw new ApiError(400, "Job id and candidate name are required");
-    }
+  if (!jobId || !name) {
+    throw new ApiError(400, "Job id and candidate name are required");
+  }
 
-    // 1. Validate job existence within the organization
-    const job = await jobRepository.findById(jobId);
-    if (!job || job.organizationId.toString() !== user.organizationId) {
-        throw new ApiError(404, "Job not found in your organization");
-    }
+  // 1. Validate job existence within the organization
+  const job = await jobRepository.findById(jobId);
+  if (!job || job.organizationId.toString() !== user.organizationId) {
+    throw new ApiError(404, "Job not found in your organization");
+  }
 
-    // 2. Create candidate record
-    return candidateRepository.create({
-        organizationId: user.organizationId,
-        name,
-        email,
-        phone,
-        resumeUrl,
-        jobId,
-        addedBy: user.id
-    });
+  // 2. Create candidate record
+  return candidateRepository.create({
+    organizationId: user.organizationId,
+    name,
+    email,
+    phone,
+    resumeUrl,
+    jobId,
+    addedBy: user.id,
+  });
 };
 
 export const getCandidatesByJob = async (user, jobId) => {
-    const candidates = await candidateRepository.findByJobId(jobId);
+  const candidates = await candidateRepository.findByJobId(jobId);
 
-    return candidates.filter(
-        c => c.organizationId.toString() === user.organizationId
-    )
-}
+  return candidates.filter(
+    (c) => c.organizationId.toString() === user.organizationId
+  );
+};
 
 export const getCandidateProfile = async (user, candidateId) => {
-    const candidate = await candidateRepository.findById(candidateId);
+  const candidate = await candidateRepository.findById(candidateId);
 
-    if (!candidate || candidate.organizationId.toString() !== user.organizationId) {
-        throw new ApiError(404, "Candidate not found in your organization");
-    }
+  if (
+    !candidate ||
+    candidate.organizationId.toString() !== user.organizationId
+  ) {
+    throw new ApiError(404, "Candidate not found in your organization");
+  }
 
-    return candidate;
+  return candidate;
 };
 
 const VALID_STAGES = [
@@ -53,7 +57,7 @@ const VALID_STAGES = [
   "INTERVIEW",
   "OFFER",
   "HIRED",
-  "REJECTED"
+  "REJECTED",
 ];
 
 export const updateCandidateStage = async (
@@ -70,10 +74,7 @@ export const updateCandidateStage = async (
 
   try {
     // 1 Fetch candidate
-    const candidate = await candidateRepository.findById(
-      candidateId,
-      session
-    );
+    const candidate = await candidateRepository.findById(candidateId, session);
 
     if (
       !candidate ||
@@ -103,18 +104,30 @@ export const updateCandidateStage = async (
         performedBy: user.id,
         fromStage,
         toStage: newStage,
-        note
+        note,
       },
       session
     );
 
     await session.commitTransaction();
+
+    const io = getIO();
+
+    io.to(`org:${user.organizationId}`).emit("candidate:stage-updated", {
+      candidateId: candidate._id,
+      jobId: candidate.jobId,
+      fromStage,
+      toStage: newStage,
+      updatedBy: user.id,
+      updatedAt: new Date(),
+    });
+
     session.endSession();
 
     return {
       candidateId: candidate._id,
       fromStage,
-      toStage: newStage
+      toStage: newStage,
     };
   } catch (error) {
     await session.abortTransaction();

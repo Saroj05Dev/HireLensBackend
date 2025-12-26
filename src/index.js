@@ -1,7 +1,9 @@
 import express from "express";
+import http from "http";
 import cookieParser from "cookie-parser";
 import { SERVER_CONFIG } from "./config/server.config.js";
 import connectDB from "./config/db.config.js";
+import initSocket from "./config/socket.js";
 
 import authRoutes from "./routes/auth.routes.js";
 import jobRoutes from "./routes/job.routes.js";
@@ -9,6 +11,10 @@ import organizationRoutes from "./routes/organization.route.js";
 import candidateRoutes from "./routes/candidate.routes.js";
 
 const app = express();
+
+const server = http.createServer(app);
+
+initSocket(server);
 
 // Middlewares
 app.use(express.json());
@@ -43,7 +49,7 @@ app.use((err, req, res, next) => {
 });
 
 // Start the server and connect to the database
-app.listen(SERVER_CONFIG.PORT, async () => {
+server.listen(SERVER_CONFIG.PORT, async () => {
   console.log(`Server is running on port ${SERVER_CONFIG.PORT}`);
   await connectDB();
 });
