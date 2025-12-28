@@ -1,7 +1,7 @@
 import express from "express";
 import auth from "../middlewares/auth.middleware.js";
 import role from "../middlewares/role.middleware.js";
-import { assignInterviewer } from "../controllers/interview.controller.js";
+import { assignInterviewer, submitFeedback } from "../controllers/interview.controller.js";
 
 const router = express.Router();
 
@@ -12,5 +12,12 @@ router.post(
     role("RECRUITER"), 
     assignInterviewer
 );
+
+router.post(
+    "/:interviewId/feedback",
+    auth,
+    role("INTERVIEWER"),
+    submitFeedback
+)
 
 export default router;

@@ -5,3 +5,7 @@ export const create = async (data) => {
     await interview.save();
     return interview;
 }
+
+export const findById = async (interviewId) => {
+    return Interview.findById(interviewId);
+}
