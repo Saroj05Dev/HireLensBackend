@@ -19,6 +19,10 @@ const initSocket = (httpServer) => {
             console.log(`Socket joined org:${organizationId}`);
         });
 
+        socket.on("join:user", (userId) => {
+            socket.join(`user:${userId}`);
+        });
+
         socket.on("disconnect", () => {
             console.log("Socket disconnected: ", socket.id)
         });
