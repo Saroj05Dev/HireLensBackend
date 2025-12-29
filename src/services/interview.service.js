@@ -54,8 +54,20 @@ export const assignInterviewer = async (
     note: `Interview assigned to interviewer`,
   });
 
-  // 5 Real-time events (SIDE EFFECT)
   const io = getIO();
+
+  io.to(`org:${user.organizationId}`).emit("decision:created", {
+    action: "INTERVIEW_ASSIGNED",
+    candidateId,
+    jobId: candidate.jobId,
+    performedBy: user.id,
+    from: null,
+    to: null,
+    note: "Interview assigned to interviewer",
+    timestamp: new Date(),
+  });
+
+  // 5 Real-time events (SIDE EFFECT)
 
   // Org-wide activity
   io.to(`org:${user.organizationId}`).emit("interview:assigned", {
@@ -118,8 +130,20 @@ export const submitFeedback = async (
     note: `Feedback submitted: ${recommendation}`,
   });
 
-  // 5 Real-time event
   const io = getIO();
+
+  io.to(`org:${interview.organizationId}`).emit("decision:created", {
+    action: "FEEDBACK_SUBMITTED",
+    candidateId: interview.candidateId,
+    jobId: interview.jobId,
+    performedBy: user.id,
+    from: null,
+    to: null,
+    note: `Feedback submitted: ${recommendation}`,
+    timestamp: new Date(),
+  });
+
+  // 5 Real-time event
 
   io.to(`org:${interview.organizationId}`).emit("feedback:submitted", {
     interviewId,
