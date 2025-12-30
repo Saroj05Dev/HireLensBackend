@@ -27,3 +27,40 @@ export const getCandidateTimeInStage = async (user, candidateId) => {
 
   return { candidateId, stages };
 };
+
+export const getJobFunnel = async (user, jobId) => {
+  const logs = await decisionLogRepository.findStageChangesByJob(
+    jobId,
+    user.organizationId
+  );
+
+  const funnelMap = {};
+
+  logs.forEach(log => {
+    if (!funnelMap[log.toStage]) {
+      funnelMap[log.toStage] = new Set();
+    }
+    funnelMap[log.toStage].add(log.candidateId.toString());
+  });
+
+  const funnel = {};
+  for (const stage in funnelMap) {
+    funnel[stage] = funnelMap[stage].size;
+  }
+
+  return { jobId, funnel };
+};
+
+export const getPipelineSummary = async (user) => {
+  const logs = await decisionLogRepository.findLatestStagePerCandidate(
+    user.organizationId
+  );
+
+  const summary = {};
+
+  logs.forEach(log => {
+    summary[log.toStage] = (summary[log.toStage] || 0) + 1;
+  });
+
+  return summary;
+};
