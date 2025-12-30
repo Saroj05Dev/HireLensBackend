@@ -29,8 +29,16 @@ const feedbackSchema = new mongoose.Schema({
         max: 5
     },
 
-    comment: {
-        type: String
+    strengths: {
+        type: String,
+        required: true,
+        trim: true
+    },
+
+    weaknesses: {
+        type: String,
+        required: true,
+        trim: true
     },
 
     recommendation: {

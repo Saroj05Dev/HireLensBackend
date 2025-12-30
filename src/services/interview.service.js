@@ -97,39 +97,41 @@ export const assignInterviewer = async (
 export const submitFeedback = async (
   user,
   interviewId,
-  { rating, comment, recommendation }
+  { rating, strengths, weaknesses, recommendation }
 ) => {
-  // 1 Validate interview ownership
+  // 1️ Validate interview ownership
   const interview = await interviewRepository.findById(interviewId);
 
   if (!interview || interview.interviewerId.toString() !== user.id) {
     throw new ApiError(403, "Not authorized to submit feedback");
   }
 
-  // 2 Core DB write (Feedback)
+  // 2️ Core DB write (Feedback) — contract compliant
   const feedback = await feedbackRepository.create({
     interviewId,
     candidateId: interview.candidateId,
     interviewerId: user.id,
     rating,
-    comment,
+    strengths,
+    weaknesses,
     recommendation,
   });
 
-  // 3 Update interview status
+  // 3️ Update interview status
   interview.status = "COMPLETED";
   await interview.save();
 
-  // 4 Decision Log (AUDIT)
+  // 4️ Decision Log (AUDIT)
   await decisionLogRepository.create({
     organizationId: interview.organizationId,
     candidateId: interview.candidateId,
     jobId: interview.jobId,
     actionType: "FEEDBACK_SUBMITTED",
     performedBy: user.id,
-    note: `Feedback submitted: ${recommendation}`,
+    note: `Recommendation: ${recommendation}`,
   });
 
+  // 5️ Real-time decision feed
   const io = getIO();
 
   io.to(`org:${interview.organizationId}`).emit("decision:created", {
@@ -139,17 +141,18 @@ export const submitFeedback = async (
     performedBy: user.id,
     from: null,
     to: null,
-    note: `Feedback submitted: ${recommendation}`,
+    note: `Recommendation: ${recommendation}`,
     timestamp: new Date(),
   });
 
-  // 5 Real-time event
-
+  // 6️ Real-time feedback-specific event
   io.to(`org:${interview.organizationId}`).emit("feedback:submitted", {
     interviewId,
     candidateId: interview.candidateId,
     interviewerId: user.id,
     rating,
+    strengths,
+    weaknesses,
     recommendation,
     submittedAt: new Date(),
   });

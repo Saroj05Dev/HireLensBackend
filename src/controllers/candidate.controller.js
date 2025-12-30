@@ -75,3 +75,20 @@ export const getCandidateDecisionLogs = async (req, res, next) => {
     next(error);
   }
 };
+
+export const getCandidateTimeInStage = async (req, res, next) => {
+  try {
+
+    const candidateId = req.params.candidateId;
+    const user = req.user.id;
+    const timeInStage = await candidateService.getCandidateTimeInStage(user, candidateId);
+
+    res.json({
+      success: true,
+      data: timeInStage,
+      message: "Time in stage fetched successfully"
+    });
+  } catch (error) {
+    next(error);
+  }
+}

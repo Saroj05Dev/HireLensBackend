@@ -11,3 +11,10 @@ export const findByCandidateId = async (candidateId) => {
     .populate("performedBy", "name")
     .sort({ createdAt: -1 });
 };
+
+export const findStageChanges = async (candidateId) => {
+  return DecisionLog.find({
+    candidateId,
+    actionType: "STAGE_CHANGE"
+  }).sort({ createdAt: 1 });
+};

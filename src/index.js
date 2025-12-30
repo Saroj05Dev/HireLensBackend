@@ -33,6 +33,7 @@ app.use("/api/v1/jobs", jobRoutes);
 app.use("/api/v1/organizations", organizationRoutes);
 app.use("/api/v1/candidates", candidateRoutes);
 app.use("/api/v1/interviews", interviewRoutes);
+app.use("/api/v1/analytics", candidateRoutes);
 
 
 // Global Error Handler (must be after all routes)
