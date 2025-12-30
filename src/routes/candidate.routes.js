@@ -7,7 +7,6 @@ import {
   getCandidateProfile, 
   updateCandidateStage,
   getCandidateDecisionLogs,
-  getCandidateTimeInStage
 } from '../controllers/candidate.controller.js';
 
 const router = express.Router();
@@ -46,14 +45,6 @@ router.get(
   auth,
   role("ADMIN", "RECRUITER", "INTERVIEWER"),
   getCandidateDecisionLogs
-);
-
-// Candidate time-in-stage
-router.get(
-  "/candidates/:candidateId/time-in-stage",
-  auth, 
-  role("ADMIN", "RECRUITER"), 
-  getCandidateTimeInStage
 );
 
 export default router;

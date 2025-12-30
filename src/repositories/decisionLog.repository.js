@@ -12,9 +12,16 @@ export const findByCandidateId = async (candidateId) => {
     .sort({ createdAt: -1 });
 };
 
-export const findStageChanges = async (candidateId) => {
+/**
+ * Candidate stage history
+ */
+export const findStageChangesByCandidate = async (
+  candidateId,
+  organizationId
+) => {
   return DecisionLog.find({
     candidateId,
+    organizationId,
     actionType: "STAGE_CHANGE"
   }).sort({ createdAt: 1 });
 };
