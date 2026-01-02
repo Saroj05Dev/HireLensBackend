@@ -9,3 +9,10 @@ export const create = async (data) => {
 export const findById = async (interviewId) => {
     return Interview.findById(interviewId);
 }
+
+export const findByCandidateId = async (candidateId) => {
+    return Interview.find({ candidateId: candidateId })
+      .populate('interviewerId', 'name email')
+      .populate('jobId', 'title')
+      .populate('candidateId', 'name email');
+}

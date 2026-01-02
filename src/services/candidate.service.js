@@ -4,6 +4,7 @@ import { getIO } from "../config/socket.js";
 import * as candidateRepository from "../repositories/candidate.repository.js";
 import * as jobRepository from "../repositories/job.repository.js";
 import * as decisionLogRepository from "../repositories/decisionLog.repository.js";
+import * as interviewRepository from "../repositories/interview.repository.js";
 
 export const addCandidate = async (user, payload) => {
   const { jobId, name, email, phone, resumeUrl } = payload;
@@ -168,3 +169,16 @@ export const getCandidateDecisionLogs = async (user, candidateId) => {
     timestamp: log.createdAt
   }));
 };
+
+export const getInterviewsByCandidate = async (user, candidateId) => {
+    // 1. Validate candidate existence
+    const candidate = await candidateRepository.findById(candidateId);
+    if (!candidate || candidate.organizationId.toString() !== user.organizationId) {
+        throw new ApiError(404, "Candidate not found in your organization");
+    }
+
+    // 2. Fetch interviews
+    const interviews = await interviewRepository.findByCandidateId(candidateId);
+
+    return interviews;
+}

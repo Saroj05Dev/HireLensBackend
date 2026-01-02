@@ -7,6 +7,7 @@ import {
   getCandidateProfile, 
   updateCandidateStage,
   getCandidateDecisionLogs,
+  getInterviewsByCandidate,
 } from '../controllers/candidate.controller.js';
 
 const router = express.Router();
@@ -45,6 +46,13 @@ router.get(
   auth,
   role("ADMIN", "RECRUITER", "INTERVIEWER"),
   getCandidateDecisionLogs
+);
+
+router.get(
+    "/:candidateId/interviews",
+    auth,
+    role("ADMIN", "RECRUITER", "INTERVIEWER"),
+    getInterviewsByCandidate
 );
 
 export default router;

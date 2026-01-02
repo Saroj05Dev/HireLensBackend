@@ -75,3 +75,20 @@ export const getCandidateDecisionLogs = async (req, res, next) => {
     next(error);
   }
 };
+
+export const getInterviewsByCandidate = async (req, res, next) => {
+  try {
+    const interviews = await candidateService.getInterviewsByCandidate(
+      req.user,
+      req.params.candidateId
+    );
+
+    res.status(200).json({
+      success: true,
+      data: interviews,
+      message: "Interviews fetched successfully"
+    });
+  } catch (error) {
+    next(error);
+  }
+}
