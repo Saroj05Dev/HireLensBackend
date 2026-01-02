@@ -1,6 +1,7 @@
 import express from "express";
 import http from "http";
 import cookieParser from "cookie-parser";
+import cors from "cors";
 import { SERVER_CONFIG } from "./config/server.config.js";
 import connectDB from "./config/db.config.js";
 import initSocket from "./config/socket.js";
@@ -19,6 +20,10 @@ const server = http.createServer(app);
 initSocket(server);
 
 // Middlewares
+app.use(cors({
+  origin: true,
+  credentials: true,
+}));
 app.use(express.json());
 app.use(cookieParser());
 app.use(express.urlencoded({ extended: true }));

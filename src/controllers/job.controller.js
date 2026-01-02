@@ -41,3 +41,17 @@ export const closeJob = async (req, res, next) => {
     next(error);
   }
 };
+
+export const getJobById = async (req, res, next) => {
+  try {
+    const job = await jobService.getJobById(req.params.jobId);
+
+    res.status(200).json({
+      success: true,
+      data: job,
+      message: "Job retrieved successfully",
+    });
+  } catch (error) {
+    next(error);
+  }
+};

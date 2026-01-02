@@ -94,3 +94,28 @@ export const closeJob = async (user, jobId) => {
     updatedAt: updatedJob.updatedAt,
   };
 };
+
+export const getJobById = async (jobId) => {
+  const job = await jobRepository.findById(jobId);
+
+  if (!job) {
+    throw new ApiError(404, "Job not found");
+  }
+
+  return {
+    id: job._id,
+    title: job.title,
+    description: job.description,
+    skills: job.skills,
+    experience: job.experience,
+    location: job.location,
+    status: job.status,
+    createdBy: {
+      id: job.createdBy._id,
+      name: job.createdBy.name,
+      email: job.createdBy.email,
+    },
+    createdAt: job.createdAt,
+    updatedAt: job.updatedAt,
+  };
+};

@@ -13,7 +13,7 @@ export const findByOrganizationId = async (organizationId) => {
 };
 
 export const findById = async (jobId) => {
-  return Job.findById(jobId);
+  return Job.findById(jobId).populate("createdBy", "name email");
 };
 
 export const updateStatus = async (jobId, status) => {
