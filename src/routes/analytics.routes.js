@@ -2,13 +2,23 @@ import { Router } from "express";
 import { 
     getCandidateTimeInStage,
     getJobFunnel,
-    getPipelineSummary
+    getPipelineSummary,
+    getTimeToHire
 } from "../controllers/analytics.controller.js";
 
 import auth from "../middlewares/auth.middleware.js";
 import role from "../middlewares/role.middleware.js";
 
 const router = Router();
+/**
+ * Org pipeline summary
+ */
+router.get(
+  "/pipeline/summary",
+  auth,
+  role("ADMIN", "RECRUITER"),
+  getPipelineSummary
+);
 
 // Candidate time-in-stage
 router.get(
@@ -28,14 +38,10 @@ router.get(
   getJobFunnel
 );
 
-/**
- * Org pipeline summary
- */
 router.get(
-  "/pipeline/summary",
+  "/jobs/:jobId/time-to-hire",
   auth,
   role("ADMIN", "RECRUITER"),
-  getPipelineSummary
-);
-
+  getTimeToHire
+)
 export default router;

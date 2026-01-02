@@ -47,3 +47,20 @@ export const getPipelineSummary = async (req, res, next) => {
     next(error);
   }
 };
+
+export const getTimeToHire = async (req, res, next) => {
+  try {
+    const data = await analyticsService.getTimeToHire(
+      req.user,
+      req.params.jobId
+    );
+
+    res.status(200).json({
+      success: true,
+      data,
+      message: "Tome to hire fetched successfully"
+    });
+  } catch (error) {
+    next(error);
+  }
+}
