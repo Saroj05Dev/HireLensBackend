@@ -112,3 +112,14 @@ export const getOrganizationMembers = async (organizationId) => {
     createdAt: user.createdAt
   }));
 };
+
+export const deactivateMember = async (orgId, userId) => {
+    const user = await userRepository.findById(userId);
+
+    if (!user || user.organizationId.toString() !== orgId) {
+        throw new ApiError(404, 'Member not found in this organization');
+    }
+
+    // Deactivate the user
+    await userRepository.updateById(userId, { isActive: false });
+}

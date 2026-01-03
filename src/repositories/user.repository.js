@@ -25,3 +25,7 @@ export const create = async (data, session) => {
   await user.save({ session });
   return user;
 };
+
+export const updateById = async (userId, updateData) => {
+    return User.findByIdAndUpdate(userId, updateData, { new: true });
+};

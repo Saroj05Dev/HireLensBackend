@@ -42,3 +42,17 @@ export const getOrganizationMembers = async (req, res, next) => {
     next(error);
   }
 };
+
+export const deactivateMember = async (req, res, next) => {
+    try {
+        const { orgId, userId } = req.params;
+        await organizationService.deactivateMember(orgId, userId);
+
+        res.status(200).json({
+            success: true,
+            message: 'Member deactivated successfully'
+        });
+    } catch (error) {
+        next(error);
+    }
+}
