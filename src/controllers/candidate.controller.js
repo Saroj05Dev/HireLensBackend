@@ -28,6 +28,20 @@ export const getCandidatesByJob = async (req, res, next) => {
     }
 }
 
+export const getAllCandidates = async (req, res, next) => {
+    try {
+        const candidates = await candidateService.getAllCandidates(req.user, req.query);
+
+        res.status(200).json({
+            success: true,
+            data: candidates,
+            message: 'Candidates fetched successfully'
+        });
+    } catch (error) {
+        next(error);
+    }
+}
+
 export const getCandidateProfile = async (req, res, next) => {
     try {
         const candidate = await candidateService.getCandidateProfile(req.user, req.params.candidateId);

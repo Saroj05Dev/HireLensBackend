@@ -39,6 +39,17 @@ export const getCandidatesByJob = async (user, jobId) => {
   );
 };
 
+export const getAllCandidates = async (user, filters) => {
+  const { stage, jobId } = filters;
+
+  const candidates = await candidateRepository.findByOrganizationIdWithFilters(
+    user.organizationId,
+    { stage, jobId }
+  );
+
+  return candidates;
+};
+
 export const getCandidateProfile = async (user, candidateId) => {
   const candidate = await candidateRepository.findById(candidateId);
 

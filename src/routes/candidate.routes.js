@@ -6,6 +6,7 @@ import {
   getCandidatesByJob, 
   getCandidateProfile, 
   updateCandidateStage,
+  getAllCandidates,
   getCandidateDecisionLogs,
   getInterviewsByCandidate,
 } from '../controllers/candidate.controller.js';
@@ -18,6 +19,14 @@ router.post(
     auth, 
     role("ADMIN", "RECRUITER"), 
     addCandidate
+);
+
+// Get all candidates for organization (with filters) - Only ADMIN & RECRUITER
+router.get(
+    "/",
+    auth,
+    role("ADMIN", "RECRUITER"),
+    getAllCandidates
 );
 
 router.get(
