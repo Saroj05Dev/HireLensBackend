@@ -44,7 +44,7 @@ export const assignInterviewer = async (
     scheduledAt,
   });
 
-  // 4 Decision Log (AUDIT — MUST EXIST BEFORE SOCKET)
+  // 4 Decision Log
   await decisionLogRepository.create({
     organizationId: user.organizationId,
     candidateId,
