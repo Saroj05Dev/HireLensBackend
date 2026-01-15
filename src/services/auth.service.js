@@ -137,3 +137,21 @@ export const refresh = async (cookies) => {
     throw new ApiError(401, "Invalid or expired refresh token");
   }
 };
+
+export const fetchMe = async (userId) => {
+  const user = await userRepository.findById(userId);
+
+  if (!user) {
+    throw new ApiError(404, "User not found");
+  }
+
+  return {
+    id: user._id,
+    name: user.name,
+    email: user.email,
+    role: user.role,
+    organizationId: user.organizationId,
+    isActive: user.isActive,
+    createdAt: user.createdAt,
+  };
+};

@@ -73,3 +73,17 @@ export const refresh = async (req, res, next) => {
         next(error);
     }
 }
+
+export const fetchMe = async (req, res, next) => {
+    try {
+        const user = await authService.fetchMe(req.user.id);
+
+        return res.status(200).json({
+            success: true,
+            data: user,
+            message: "User fetched successfully",
+        });
+    } catch (error) {
+        next(error);
+    }
+}
