@@ -1,17 +1,35 @@
 import * as authService from "../services/auth.service.js";
 
 export const register = async (req, res, next) => {
-    try {
-        const result = await authService.register(req.body);
+  try {
+    const result = await authService.register(req.body);
+    const { accessToken, refreshToken } = result.tokens;
 
-        return res.status(201).json({
-            success: true,
-            data: result,
-            message: "Organization and admin user created successfully",
-        });
-    } catch (error) {
-        next(error);
-    }
+    res.cookie("accessToken", accessToken, {
+      httpOnly: true,
+      sameSite: "lax",
+      secure: false, // true in production (HTTPS)
+      maxAge: 15 * 60 * 1000, // 15 minutes
+    });
+
+    res.cookie("refreshToken", refreshToken, {
+      httpOnly: true,
+      sameSite: "lax",
+      secure: false,
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+    });
+
+    return res.status(201).json({
+      success: true,
+      data: {
+        user: result.user,
+        organization: result.organization,
+      },
+      message: "Organization and admin user created successfully",
+    });
+  } catch (error) {
+    next(error);
+  }
 };
 
 export const login = async (req, res, next) => {
