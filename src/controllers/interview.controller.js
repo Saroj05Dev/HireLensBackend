@@ -83,6 +83,20 @@ export const getInterviewFeedback = async (req, res, next) => {
   }
 };
 
+export const getInterviewers = async (req, res, next) => {
+  try {
+    const interviewers = await interviewService.getInterviewers(req.user);
+
+    res.status(200).json({
+      success: true,
+      data: interviewers,
+      message: "Interviewers fetched successfully"
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 export const getAllInterviews = async (req, res, next) => {
   try {
     const { status, jobId, candidateId } = req.query;
@@ -101,4 +115,3 @@ export const getAllInterviews = async (req, res, next) => {
     next(error);
   }
 };
-

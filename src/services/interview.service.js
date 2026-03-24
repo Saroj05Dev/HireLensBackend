@@ -35,7 +35,17 @@ export const assignInterviewer = async (
     throw new ApiError(400, "Invalid interviewer");
   }
 
-  // 3 Core DB write (Interview assignment)
+  // 3 Check if interview already exists for this candidate with this interviewer
+  const existingInterview = await interviewRepository.findByCandidateAndInterviewer(
+    candidateId,
+    interviewerId
+  );
+
+  if (existingInterview) {
+    throw new ApiError(400, "Interview already assigned to this interviewer for this candidate");
+  }
+
+  // 4 Core DB write (Interview assignment)
   const interview = await interviewRepository.create({
     organizationId: user.organizationId,
     candidateId,
@@ -44,14 +54,14 @@ export const assignInterviewer = async (
     scheduledAt,
   });
 
-  // 4 Decision Log
+  // 5 Decision Log
   await decisionLogRepository.create({
     organizationId: user.organizationId,
     candidateId,
     jobId: candidate.jobId,
     actionType: "INTERVIEW_ASSIGNED",
     performedBy: user.id,
-    note: `Interview assigned to interviewer`,
+    note: `Interview assigned to ${interviewer.name}`,
   });
 
   const io = getIO();
@@ -63,11 +73,11 @@ export const assignInterviewer = async (
     performedBy: user.id,
     from: null,
     to: null,
-    note: "Interview assigned to interviewer",
+    note: `Interview assigned to ${interviewer.name}`,
     timestamp: new Date(),
   });
 
-  // 5 Real-time events (SIDE EFFECT)
+  // 6 Real-time events (SIDE EFFECT)
 
   // Org-wide activity
   io.to(`org:${user.organizationId}`).emit("interview:assigned", {
@@ -210,3 +220,19 @@ export const getAllInterviews = async (user, filters) => {
   return interviewRepository.findByOrganization(user.organizationId, filters);
 };
 
+/**
+ * Get all interviewers in the organization
+ * Role: RECRUITER
+ */
+export const getInterviewers = async (user) => {
+  const interviewers = await userRepository.findByOrganizationAndRole(
+    user.organizationId,
+    "INTERVIEWER"
+  );
+  
+  return interviewers.map(interviewer => ({
+    _id: interviewer._id,
+    name: interviewer.name,
+    email: interviewer.email
+  }));
+};

@@ -29,3 +29,13 @@ export const create = async (data, session) => {
 export const updateById = async (userId, updateData) => {
     return User.findByIdAndUpdate(userId, updateData, { new: true });
 };
+
+export const findByOrganizationAndRole = async (organizationId, role) => {
+  return User.find({ 
+    organizationId, 
+    role,
+    isActive: true 
+  })
+    .select("_id name email role")
+    .sort({ name: 1 });
+};

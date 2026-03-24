@@ -21,6 +21,7 @@ export const findByInterviewerId = async (interviewerId) => {
     return Interview.find({ interviewerId })
       .populate('candidateId', 'name email')
       .populate('jobId', 'title')
+      .populate('interviewerId', 'name email')
       .sort({ scheduledAt: 1 });
 }
 
@@ -44,3 +45,10 @@ export const findByOrganization = async (organizationId, filters = {}) => {
       .sort({ scheduledAt: 1 });
 }
 
+
+export const findByCandidateAndInterviewer = async (candidateId, interviewerId) => {
+    return Interview.findOne({ 
+        candidateId, 
+        interviewerId
+    });
+}

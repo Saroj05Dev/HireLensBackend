@@ -8,9 +8,18 @@ import {
     getInterviewsByJob,
     getInterviewFeedback,
     getAllInterviews,
+    getInterviewers
 } from "../controllers/interview.controller.js";
 
 const router = express.Router();
+
+// Get all interviewers in organization (Recruiter)
+router.get(
+    "/interviewers",
+    auth,
+    role("RECRUITER"),
+    getInterviewers
+);
 
 // Get all interviews in the org (Admin/Recruiter)
 router.get(
