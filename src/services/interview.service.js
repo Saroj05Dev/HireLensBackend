@@ -159,3 +159,54 @@ export const submitFeedback = async (
 
   return feedback;
 };
+
+/**
+ * Get my assigned interviews
+ * Role: INTERVIEWER
+ */
+export const getMyInterviews = async (user) => {
+  const interviews = await interviewRepository.findByInterviewerId(user.id);
+  return interviews;
+};
+
+/**
+ * Get interviews for a specific job
+ * Role: RECRUITER
+ */
+export const getInterviewsByJob = async (user, jobId) => {
+  const interviews = await interviewRepository.findByJobId(jobId);
+  
+  // Filter by organization
+  return interviews.filter(
+    (interview) => interview.organizationId.toString() === user.organizationId
+  );
+};
+
+/**
+ * Get feedback for an interview
+ * Role: RECRUITER, INTERVIEWER
+ */
+export const getInterviewFeedback = async (user, interviewId) => {
+  const interview = await interviewRepository.findById(interviewId);
+  
+  if (!interview || interview.organizationId.toString() !== user.organizationId) {
+    throw new ApiError(404, "Interview not found");
+  }
+  
+  const feedback = await feedbackRepository.findByInterviewId(interviewId);
+  
+  if (!feedback) {
+    throw new ApiError(404, "Feedback not found");
+  }
+  
+  return feedback;
+};
+
+/**
+ * Get all interviews in the organization (with optional filters)
+ * Role: ADMIN, RECRUITER
+ */
+export const getAllInterviews = async (user, filters) => {
+  return interviewRepository.findByOrganization(user.organizationId, filters);
+};
+

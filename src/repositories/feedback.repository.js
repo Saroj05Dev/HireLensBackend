@@ -5,3 +5,7 @@ export const create = async (data) => {
   await feedback.save();
   return feedback;
 };
+
+export const findByInterviewId = async (interviewId) => {
+  return InterviewFeedback.findOne({ interviewId });
+};

@@ -63,7 +63,7 @@ const jobSchema = new mongoose.Schema(
   }
 );
 
-// Compound index for efficient queries
+// Compound index for efficient query
 jobSchema.index({ organizationId: 1, status: 1 });
 
 export default mongoose.model("Job", jobSchema);
