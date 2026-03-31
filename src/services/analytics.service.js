@@ -1,4 +1,5 @@
 import * as decisionLogRepository from "../repositories/decisionLog.repository.js";
+import * as analyticsRepository from "../repositories/analytics.repository.js";
 
 export const getCandidateTimeInStage = async (user, candidateId) => {
   const logs = await decisionLogRepository.findStageChangesByCandidate(
@@ -125,4 +126,34 @@ export const getTimeToHire = async (user, jobId) => {
     averageTimeToHireDays,
     hires
   };
+};
+
+/**
+ * Get dashboard overview statistics
+ * Role: ADMIN, RECRUITER
+ */
+export const getDashboardStats = async (user) => {
+  const stats = await analyticsRepository.getDashboardStats(user.organizationId);
+  return stats;
+};
+
+/**
+ * Get recent activity feed
+ * Role: ADMIN, RECRUITER
+ */
+export const getRecentActivity = async (user, limit = 10) => {
+  const activities = await analyticsRepository.getRecentActivity(
+    user.organizationId,
+    limit
+  );
+  return activities;
+};
+
+/**
+ * Get candidates breakdown by stage
+ * Role: ADMIN, RECRUITER
+ */
+export const getCandidatesByStage = async (user) => {
+  const breakdown = await analyticsRepository.getCandidatesByStage(user.organizationId);
+  return breakdown;
 };

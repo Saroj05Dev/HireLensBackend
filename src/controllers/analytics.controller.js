@@ -64,3 +64,47 @@ export const getTimeToHire = async (req, res, next) => {
     next(error);
   }
 }
+
+
+export const getDashboardStats = async (req, res, next) => {
+  try {
+    const data = await analyticsService.getDashboardStats(req.user);
+
+    res.status(200).json({
+      success: true,
+      data,
+      message: "Dashboard stats fetched successfully"
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const getRecentActivity = async (req, res, next) => {
+  try {
+    const limit = parseInt(req.query.limit) || 10;
+    const data = await analyticsService.getRecentActivity(req.user, limit);
+
+    res.status(200).json({
+      success: true,
+      data,
+      message: "Recent activity fetched successfully"
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const getCandidatesByStage = async (req, res, next) => {
+  try {
+    const data = await analyticsService.getCandidatesByStage(req.user);
+
+    res.status(200).json({
+      success: true,
+      data,
+      message: "Candidates by stage fetched successfully"
+    });
+  } catch (error) {
+    next(error);
+  }
+};
