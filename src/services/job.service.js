@@ -90,7 +90,51 @@ export const closeJob = async (user, jobId) => {
   return {
     id: updatedJob._id,
     title: updatedJob.title,
+    description: updatedJob.description,
+    skills: updatedJob.skills,
+    experience: updatedJob.experience,
+    location: updatedJob.location,
     status: updatedJob.status,
+    createdBy: updatedJob.createdBy,
+    createdAt: updatedJob.createdAt,
+    updatedAt: updatedJob.updatedAt,
+  };
+};
+
+export const reopenJob = async (user, jobId) => {
+  // Find job
+  const job = await jobRepository.findById(jobId);
+
+  if (!job) {
+    throw new ApiError(404, "Job not found");
+  }
+
+  // Verify job belongs to user's organization
+  if (job.organizationId.toString() !== user.organizationId) {
+    throw new ApiError(
+      403,
+      "Access denied. Job belongs to another organization"
+    );
+  }
+
+  // Check if job is already open
+  if (job.status === "OPEN") {
+    throw new ApiError(400, "Job is already open");
+  }
+
+  // Update job status
+  const updatedJob = await jobRepository.updateStatus(jobId, "OPEN");
+
+  return {
+    id: updatedJob._id,
+    title: updatedJob.title,
+    description: updatedJob.description,
+    skills: updatedJob.skills,
+    experience: updatedJob.experience,
+    location: updatedJob.location,
+    status: updatedJob.status,
+    createdBy: updatedJob.createdBy,
+    createdAt: updatedJob.createdAt,
     updatedAt: updatedJob.updatedAt,
   };
 };
