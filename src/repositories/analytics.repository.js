@@ -23,7 +23,7 @@ export const getDashboardStats = async (organizationId) => {
     Candidate.countDocuments({ organizationId: orgId }),
     Candidate.countDocuments({ 
       organizationId: orgId, 
-      stage: { $in: ["APPLIED", "SCREENING", "INTERVIEW", "OFFER"] } 
+      currentStage: { $in: ["APPLIED", "SCREENING", "INTERVIEW", "OFFER"] } 
     }),
     Interview.countDocuments({ organizationId: orgId }),
     Interview.countDocuments({ organizationId: orgId, status: "ASSIGNED" }),
@@ -61,7 +61,7 @@ export const getCandidatesByStage = async (organizationId) => {
   
   return Candidate.aggregate([
     { $match: { organizationId: orgId } },
-    { $group: { _id: "$stage", count: { $sum: 1 } } },
+    { $group: { _id: "$currentStage", count: { $sum: 1 } } },
     { $sort: { _id: 1 } }
   ]);
 };

@@ -297,53 +297,75 @@ export const seedDatabase = async () => {
     );
     console.log(`✅ ${feedbacks.length} interview feedbacks created`);
 
-    // Create Decision Logs
+    // Create Decision Logs with realistic timestamps
     console.log("📋 Creating decision logs...");
     const decisionLogs = [];
     
-    // Stage change logs
+    // Stage change logs with progressive timestamps
     for (const candidate of candidates) {
-      if (candidate.currentStage !== "APPLIED") {
-        const stages = ["APPLIED", "SCREENING", "INTERVIEW", "OFFER", "HIRED"];
-        const currentIndex = stages.indexOf(candidate.currentStage);
+      const stages = ["APPLIED", "SCREENING", "INTERVIEW", "OFFER", "HIRED", "REJECTED"];
+      const currentIndex = stages.indexOf(candidate.currentStage);
+      
+      if (currentIndex === -1) continue;
+      
+      // Start from 30-60 days ago
+      let daysAgo = 30 + Math.floor(Math.random() * 30);
+      
+      // Create stage progression with realistic time gaps
+      for (let i = 0; i <= currentIndex; i++) {
+        const stageDate = new Date();
+        stageDate.setDate(stageDate.getDate() - daysAgo);
         
-        for (let i = 0; i < currentIndex; i++) {
-          decisionLogs.push({
-            organizationId: organization._id,
-            candidateId: candidate._id,
-            jobId: candidate.jobId,
-            actionType: "STAGE_CHANGE",
-            performedBy: getRandomElement(recruiters)._id,
-            fromStage: stages[i],
-            toStage: stages[i + 1],
-            note: `Candidate progressed to ${stages[i + 1]} stage`
-          });
-        }
+        decisionLogs.push({
+          organizationId: organization._id,
+          candidateId: candidate._id,
+          jobId: candidate.jobId,
+          actionType: "STAGE_CHANGE",
+          performedBy: getRandomElement(recruiters)._id,
+          fromStage: i === 0 ? null : stages[i - 1],
+          toStage: stages[i],
+          note: i === 0 
+            ? `Candidate applied for the position` 
+            : `Candidate progressed to ${stages[i]} stage`,
+          createdAt: stageDate
+        });
+        
+        // Reduce days for next stage (3-7 days between stages)
+        daysAgo -= (3 + Math.floor(Math.random() * 5));
+        if (daysAgo < 0) daysAgo = 0;
       }
     }
     
     // Interview assigned logs
     for (const interview of interviews) {
+      const interviewDate = new Date(interview.scheduledAt);
+      interviewDate.setDate(interviewDate.getDate() - 2); // Assigned 2 days before scheduled
+      
       decisionLogs.push({
         organizationId: organization._id,
         candidateId: interview.candidateId,
         jobId: interview.jobId,
         actionType: "INTERVIEW_ASSIGNED",
         performedBy: getRandomElement(recruiters)._id,
-        note: "Interview scheduled with candidate"
+        note: "Interview scheduled with candidate",
+        createdAt: interviewDate
       });
     }
     
     // Feedback submitted logs
     for (const feedback of feedbacks) {
       const interview = interviews.find(i => i._id.equals(feedback.interviewId));
+      const feedbackDate = new Date(interview.scheduledAt);
+      feedbackDate.setDate(feedbackDate.getDate() + 1); // Feedback 1 day after interview
+      
       decisionLogs.push({
         organizationId: organization._id,
         candidateId: feedback.candidateId,
         jobId: interview.jobId,
         actionType: "FEEDBACK_SUBMITTED",
         performedBy: feedback.interviewerId,
-        note: `Feedback submitted with recommendation: ${feedback.recommendation}`
+        note: `Feedback submitted with recommendation: ${feedback.recommendation}`,
+        createdAt: feedbackDate
       });
     }
     
