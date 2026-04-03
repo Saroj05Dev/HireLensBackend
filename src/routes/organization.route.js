@@ -5,6 +5,7 @@ import {
     inviteUser, 
     acceptInvite, 
     getOrganizationMembers, 
+    getPendingInvites,
     deactivateMember 
 } from "../controllers/organization.controller.js";
 
@@ -19,6 +20,14 @@ router.get(
     auth, 
     role('ADMIN'), 
     getOrganizationMembers
+);
+
+// Get pending invites
+router.get(
+    "/invites",
+    auth,
+    role('ADMIN'),
+    getPendingInvites
 );
 
 router.patch(

@@ -4,6 +4,7 @@ import jwt from "jsonwebtoken";
 
 import * as organizationRepository from "../repositories/organization.repository.js";
 import * as userRepository from "../repositories/user.repository.js";
+import * as inviteRepository from "../repositories/invite.repository.js";
 import { generateToken } from "../utils/tokenService.js";
 import ApiError from "../utils/ApiError.js";
 
@@ -153,5 +154,62 @@ export const fetchMe = async (userId) => {
     organizationId: user.organizationId,
     isActive: user.isActive,
     createdAt: user.createdAt,
+  };
+};
+
+export const acceptInvite = async ({ token, name, password }) => {
+  // Validate required fields
+  if (!token || !name || !password) {
+    throw new ApiError(400, "Token, name and password are required");
+  }
+
+  // Find invite by token
+  const invite = await inviteRepository.findByToken(token);
+  if (!invite) {
+    throw new ApiError(404, "Invitation not found");
+  }
+
+  // Check expiration
+  if (new Date() > invite.expiresAt) {
+    throw new ApiError(401, "Invitation has expired");
+  }
+
+  // Check if already accepted
+  if (invite.isAccepted) {
+    throw new ApiError(400, "Invitation already accepted");
+  }
+
+  // Hash password (salt rounds = 10)
+  const hashedPassword = await bcrypt.hash(password, 10);
+
+  // Create active user
+  const user = await userRepository.create({
+    name,
+    email: invite.email,
+    password: hashedPassword,
+    role: invite.role,
+    organizationId: invite.organizationId,
+    isActive: true,
+  });
+
+  // Mark invite as accepted
+  await inviteRepository.markAccepted(invite._id);
+
+  // Generate JWT tokens
+  const tokens = generateToken({
+    userId: user._id,
+    role: user.role,
+    organizationId: user.organizationId,
+  });
+
+  // Return user details and tokens
+  return {
+    user: {
+      id: user._id,
+      email: user.email,
+      role: user.role,
+      name: user.name,
+    },
+    tokens,
   };
 };

@@ -1,4 +1,5 @@
 import * as authService from "../services/auth.service.js";
+import * as organizationService from "../services/organization.service.js";
 
 export const register = async (req, res, next) => {
   try {
@@ -100,6 +101,52 @@ export const fetchMe = async (req, res, next) => {
             success: true,
             data: user,
             message: "User fetched successfully",
+        });
+    } catch (error) {
+        next(error);
+    }
+}
+
+export const validateInviteToken = async (req, res, next) => {
+    try {
+        const { token } = req.params;
+        const inviteDetails = await organizationService.validateInviteToken(token);
+
+        return res.status(200).json({
+            success: true,
+            data: inviteDetails,
+            message: "Invitation validated successfully",
+        });
+    } catch (error) {
+        next(error);
+    }
+}
+
+export const acceptInvite = async (req, res, next) => {
+    try {
+        const { token, name, password } = req.body;
+        const result = await authService.acceptInvite({ token, name, password });
+        const { accessToken, refreshToken } = result.tokens;
+
+        // Set JWT tokens in httpOnly cookies
+        res.cookie("accessToken", accessToken, {
+            httpOnly: true,
+            sameSite: "lax",
+            secure: false, // true in production (HTTPS)
+            maxAge: 15 * 60 * 1000, // 15 minutes
+        });
+
+        res.cookie("refreshToken", refreshToken, {
+            httpOnly: true,
+            sameSite: "lax",
+            secure: false,
+            maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+        });
+
+        return res.status(200).json({
+            success: true,
+            data: result.user,
+            message: "Invitation accepted successfully",
         });
     } catch (error) {
         next(error);

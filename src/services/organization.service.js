@@ -1,52 +1,65 @@
 import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
+import { randomUUID } from "crypto";
 import { SERVER_CONFIG } from "../config/server.config.js";
 import ApiError from "../utils/ApiError.js";
 import * as userRepository from "../repositories/user.repository.js";
+import * as inviteRepository from "../repositories/invite.repository.js";
 
 export const inviteUser = async (
     adminUser,
     { email, role }
 ) => {
-
     const normalizedRole = role?.toUpperCase().trim();
 
-    // 1. Validate role
+    // 1. Validate role - only RECRUITER or INTERVIEWER allowed
     if (!['RECRUITER', 'INTERVIEWER'].includes(normalizedRole)) {
         throw new ApiError(400, 'Invalid role for invitation');
     }
 
-    // 2. Check if user already exists
+    // 2. Check if active user already exists with this email
     const existingUser = await userRepository.findByEmail(email);
     if (existingUser) {
         throw new ApiError(409, 'User with this email already exists');
     }
 
-    // 3. Create inactive user
-    const user = await userRepository.create({
+    // 3. Check if pending invite already exists for this email and organization
+    const pendingInvite = await inviteRepository.findPendingByEmailAndOrg(
         email,
-        role,
+        adminUser.organizationId
+    );
+    if (pendingInvite) {
+        throw new ApiError(409, 'Pending invitation already exists for this email');
+    }
+
+    // 4. Generate UUID v4 token
+    const token = randomUUID();
+
+    // 5. Calculate expiration date (7 days from now)
+    const expiresAt = new Date();
+    expiresAt.setDate(expiresAt.getDate() + 7);
+
+    // 6. Create invite record
+    const invite = await inviteRepository.create({
+        email,
+        role: normalizedRole,
         organizationId: adminUser.organizationId,
-        isActive: false
+        token,
+        expiresAt,
+        isAccepted: false
     });
 
-    // 4. Generate invitation token ( short-lived JWT )
-    const inviteToken = jwt.sign(
-        {
-            userId: user._id,
-            organizationId: adminUser.organizationId,
-        },
-        SERVER_CONFIG.JWT_ACCESS_SECRET,
-        { expiresIn: '24h' }
-    );
-
+    // 7. Return invite details and invitation URL
     return {
-        invitedUser: {
-            id: user._id,
-            email: user.email,
-            role: normalizedRole
+        invite: {
+            id: invite._id,
+            email: invite.email,
+            role: invite.role,
+            token: invite.token,
+            expiresAt: invite.expiresAt,
+            createdAt: invite.createdAt
         },
-        inviteToken // v1: return token directly, v2: send via email
+        inviteUrl: `https://hirelens.app/invite/${token}`
     };
 }
 
@@ -100,7 +113,20 @@ export const acceptInvite = async ({
     };
 };
 
-export const getOrganizationMembers = async (organizationId) => {
+export const getPendingInvites = async (organizationId) => {
+  const invites = await inviteRepository.findPendingByOrganization(organizationId);
+
+  return invites.map(invite => ({
+    id: invite._id,
+    email: invite.email,
+    role: invite.role,
+    token: invite.token,
+    createdAt: invite.createdAt,
+    expiresAt: invite.expiresAt
+  }));
+};
+
+export const getMembers = async (organizationId) => {
   const users = await userRepository.findByOrganizationId(organizationId);
 
   return users.map(user => ({
@@ -113,13 +139,68 @@ export const getOrganizationMembers = async (organizationId) => {
   }));
 };
 
-export const deactivateMember = async (orgId, userId) => {
+export const deactivateMember = async (adminUser, userId) => {
+    // Validate adminUser has organizationId
+    if (!adminUser || !adminUser.organizationId) {
+        throw new ApiError(400, 'Invalid admin user context');
+    }
+
+    // Find user by userId
     const user = await userRepository.findById(userId);
 
-    if (!user || user.organizationId.toString() !== orgId) {
+    // Throw 404 if user not found
+    if (!user) {
         throw new ApiError(404, 'Member not found in this organization');
     }
 
-    // Deactivate the user
+    // Verify user belongs to admin's organization (throw 404 if not)
+    const userOrgId = user.organizationId?.toString() || user.organizationId;
+    const adminOrgId = adminUser.organizationId?.toString() || adminUser.organizationId;
+    
+    if (userOrgId !== adminOrgId) {
+        throw new ApiError(404, 'Member not found in this organization');
+    }
+
+    // Prevent self-deactivation (throw 400 if admin tries to deactivate self)
+    const userId_str = user._id?.toString() || user._id;
+    const adminId_str = adminUser._id?.toString() || adminUser.id?.toString() || adminUser._id;
+    
+    if (userId_str === adminId_str) {
+        throw new ApiError(400, 'Cannot deactivate your own account');
+    }
+
+    // Set user.isActive = false
     await userRepository.updateById(userId, { isActive: false });
+
+    // Return success confirmation
+    return {
+        success: true,
+        message: 'Member deactivated successfully'
+    };
+}
+
+export const validateInviteToken = async (token) => {
+    // 1. Find invite by token
+    const invite = await inviteRepository.findByToken(token);
+
+    // 2. Check if invite exists (404 if not)
+    if (!invite) {
+        throw new ApiError(404, 'Invitation not found');
+    }
+
+    // 3. Check if current time > expiresAt (401 if expired)
+    const now = new Date();
+    if (now > invite.expiresAt) {
+        throw new ApiError(401, 'Invitation has expired');
+    }
+
+    // 4. Populate the organizationId field to get the organization name
+    await invite.populate('organizationId');
+
+    // 5. Return organization name, role, and email
+    return {
+        organizationName: invite.organizationId.name,
+        role: invite.role,
+        email: invite.email
+    };
 }
