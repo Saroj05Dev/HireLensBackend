@@ -13,3 +13,7 @@ export const updateOwner = async (orgId, ownerId, session) => {
     { session, new: true }
   );
 };
+
+export const findById = async (orgId) => {
+  return Organization.findById(orgId);
+};

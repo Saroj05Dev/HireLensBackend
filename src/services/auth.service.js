@@ -146,12 +146,20 @@ export const fetchMe = async (userId) => {
     throw new ApiError(404, "User not found");
   }
 
+  // Fetch organization details
+  let organizationName = null;
+  if (user.organizationId) {
+    const organization = await organizationRepository.findById(user.organizationId);
+    organizationName = organization?.name || null;
+  }
+
   return {
     id: user._id,
     name: user.name,
     email: user.email,
     role: user.role,
     organizationId: user.organizationId,
+    organizationName,
     isActive: user.isActive,
     createdAt: user.createdAt,
   };
