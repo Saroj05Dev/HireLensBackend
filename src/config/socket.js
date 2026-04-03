@@ -21,6 +21,7 @@ const initSocket = (httpServer) => {
 
         socket.on("join:user", (userId) => {
             socket.join(`user:${userId}`);
+            console.log(`Socket joined user:${userId}`);
         });
 
         socket.on("disconnect", () => {
@@ -37,5 +38,12 @@ export const getIO = () => {
     }
     return io;
 }
+
+// Emit notification to specific user
+export const emitNotification = (userId, notification) => {
+    if (io) {
+        io.to(`user:${userId}`).emit("notification:new", notification);
+    }
+};
 
 export default initSocket;

@@ -5,6 +5,7 @@ import * as candidateRepository from "../repositories/candidate.repository.js";
 import * as userRepository from "../repositories/user.repository.js";
 import * as feedbackRepository from "../repositories/feedback.repository.js";
 import * as decisionLogRepository from "../repositories/decisionLog.repository.js";
+import * as notificationService from "./notification.service.js";
 
 /**
  * Assign interviewer to candidate
@@ -97,6 +98,20 @@ export const assignInterviewer = async (
     scheduledAt,
   });
 
+  // Create notification for interviewer
+  await notificationService.notifyInterviewAssignment({
+    interviewerId,
+    candidateName: candidate.name,
+    jobTitle: candidate.jobId?.title || "Unknown Job",
+    interviewDate: scheduledAt,
+    organizationId: user.organizationId,
+    metadata: {
+      interviewId: interview._id,
+      candidateId,
+      jobId: candidate.jobId
+    }
+  });
+
   return interview;
 };
 
@@ -166,6 +181,32 @@ export const submitFeedback = async (
     recommendation,
     submittedAt: new Date(),
   });
+
+  // 7️ Create notification for recruiters
+  // Get all recruiters in the organization
+  const recruiters = await userRepository.findByOrganizationAndRole(
+    interview.organizationId,
+    "RECRUITER"
+  );
+  
+  const candidate = await candidateRepository.findById(interview.candidateId);
+  
+  // Notify each recruiter
+  for (const recruiter of recruiters) {
+    await notificationService.notifyFeedbackSubmitted({
+      recruiterId: recruiter._id,
+      candidateName: candidate.name,
+      interviewerName: user.name,
+      organizationId: interview.organizationId,
+      metadata: {
+        interviewId,
+        candidateId: interview.candidateId,
+        feedbackId: feedback._id,
+        rating,
+        recommendation
+      }
+    });
+  }
 
   return feedback;
 };
