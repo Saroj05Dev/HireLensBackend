@@ -58,12 +58,26 @@ export const getTimeToHire = async (req, res, next) => {
     res.status(200).json({
       success: true,
       data,
-      message: "Tome to hire fetched successfully"
+      message: "Time to hire fetched successfully"
     });
   } catch (error) {
     next(error);
   }
-}
+};
+
+export const getOrganizationTimeToHire = async (req, res, next) => {
+  try {
+    const data = await analyticsService.getOrganizationTimeToHire(req.user);
+
+    res.status(200).json({
+      success: true,
+      data,
+      message: "Organization time to hire fetched successfully"
+    });
+  } catch (error) {
+    next(error);
+  }
+};
 
 
 export const getDashboardStats = async (req, res, next) => {

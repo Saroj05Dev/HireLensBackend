@@ -52,3 +52,13 @@ export const findLatestStagePerCandidate = async (organizationId) => {
     }
   ]);
 };
+
+/**
+ * Organization-wide stage changes
+ */
+export const findStageChangesByOrganization = async (organizationId) => {
+  return DecisionLog.find({
+    organizationId,
+    actionType: "STAGE_CHANGE"
+  }).sort({ createdAt: 1 });
+};

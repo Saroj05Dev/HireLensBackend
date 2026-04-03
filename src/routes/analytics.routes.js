@@ -4,6 +4,7 @@ import {
     getJobFunnel,
     getPipelineSummary,
     getTimeToHire,
+    getOrganizationTimeToHire,
     getDashboardStats,
     getRecentActivity,
     getCandidatesByStage
@@ -52,6 +53,16 @@ router.get(
   auth,
   role("ADMIN", "RECRUITER"),
   getPipelineSummary
+);
+
+/**
+ * Organization-wide time to hire
+ */
+router.get(
+  "/organization/time-to-hire",
+  auth,
+  role("ADMIN", "RECRUITER"),
+  getOrganizationTimeToHire
 );
 
 // Candidate time-in-stage
