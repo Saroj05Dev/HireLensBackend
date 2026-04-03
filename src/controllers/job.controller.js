@@ -69,3 +69,31 @@ export const getJobById = async (req, res, next) => {
     next(error);
   }
 };
+
+export const updateJob = async (req, res, next) => {
+  try {
+    const job = await jobService.updateJob(req.user, req.params.jobId, req.body);
+
+    res.status(200).json({
+      success: true,
+      data: job,
+      message: "Job updated successfully",
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const deleteJob = async (req, res, next) => {
+  try {
+    const job = await jobService.deleteJob(req.user, req.params.jobId);
+
+    res.status(200).json({
+      success: true,
+      data: job,
+      message: "Job deleted successfully",
+    });
+  } catch (error) {
+    next(error);
+  }
+};

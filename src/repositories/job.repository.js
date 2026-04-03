@@ -23,3 +23,15 @@ export const updateStatus = async (jobId, status) => {
     { new: true, runValidators: true }
   );
 };
+
+export const update = async (jobId, jobData) => {
+  return Job.findByIdAndUpdate(
+    jobId,
+    jobData,
+    { new: true, runValidators: true }
+  ).populate("createdBy", "name email");
+};
+
+export const deleteById = async (jobId) => {
+  return Job.findByIdAndDelete(jobId);
+};

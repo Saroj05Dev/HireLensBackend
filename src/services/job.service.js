@@ -163,3 +163,82 @@ export const getJobById = async (jobId) => {
     updatedAt: job.updatedAt,
   };
 };
+
+export const updateJob = async (user, jobId, jobData) => {
+  const { title, description, skills, experience, location } = jobData;
+
+  // Find job
+  const job = await jobRepository.findById(jobId);
+
+  if (!job) {
+    throw new ApiError(404, "Job not found");
+  }
+
+  // Verify job belongs to user's organization
+  if (job.organizationId.toString() !== user.organizationId) {
+    throw new ApiError(
+      403,
+      "Access denied. Job belongs to another organization"
+    );
+  }
+
+  // Validate required fields
+  if (!title || !description || !skills || !experience || !location) {
+    throw new ApiError(
+      400,
+      "All fields (title, description, skills, experience, location) are required"
+    );
+  }
+
+  // Validate skills array
+  if (!Array.isArray(skills) || skills.length === 0) {
+    throw new ApiError(400, "Skills must be a non-empty array");
+  }
+
+  // Update job
+  const updatedJob = await jobRepository.update(jobId, {
+    title,
+    description,
+    skills,
+    experience,
+    location,
+  });
+
+  return {
+    id: updatedJob._id,
+    title: updatedJob.title,
+    description: updatedJob.description,
+    skills: updatedJob.skills,
+    experience: updatedJob.experience,
+    location: updatedJob.location,
+    status: updatedJob.status,
+    createdBy: updatedJob.createdBy,
+    createdAt: updatedJob.createdAt,
+    updatedAt: updatedJob.updatedAt,
+  };
+};
+
+export const deleteJob = async (user, jobId) => {
+  // Find job
+  const job = await jobRepository.findById(jobId);
+
+  if (!job) {
+    throw new ApiError(404, "Job not found");
+  }
+
+  // Verify job belongs to user's organization
+  if (job.organizationId.toString() !== user.organizationId) {
+    throw new ApiError(
+      403,
+      "Access denied. Job belongs to another organization"
+    );
+  }
+
+  // Delete job
+  await jobRepository.deleteById(jobId);
+
+  return {
+    id: job._id,
+    title: job.title,
+  };
+};
