@@ -177,6 +177,7 @@ export const getCandidateDecisionLogs = async (user, candidateId) => {
     from: log.fromStage,
     to: log.toStage,
     by: log.performedBy?.name || "System",
+    note: log.note,
     timestamp: log.createdAt
   }));
 };
