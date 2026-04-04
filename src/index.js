@@ -3,7 +3,6 @@ import http from "http";
 import cookieParser from "cookie-parser";
 import cors from "cors";
 import rateLimit from "express-rate-limit";
-import mongoSanitize from "express-mongo-sanitize";
 import helmet from "helmet";
 import { SERVER_CONFIG } from "./config/server.config.js";
 import connectDB from "./config/db.config.js";
@@ -58,8 +57,26 @@ app.use(express.json({ limit: '10mb' }));
 app.use(cookieParser());
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// Sanitize data to prevent MongoDB injection
-app.use(mongoSanitize());
+// Custom MongoDB injection protection middleware
+app.use((req, res, next) => {
+  const sanitize = (obj) => {
+    if (obj && typeof obj === 'object') {
+      Object.keys(obj).forEach(key => {
+        if (key.startsWith('$') || key.includes('.')) {
+          delete obj[key];
+        } else if (typeof obj[key] === 'object') {
+          sanitize(obj[key]);
+        }
+      });
+    }
+    return obj;
+  };
+  
+  if (req.body) sanitize(req.body);
+  if (req.params) sanitize(req.params);
+  
+  next();
+});
 
 // Routes
 app.get("/", (req, res) => {
