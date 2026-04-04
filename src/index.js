@@ -13,6 +13,7 @@ import candidateRoutes from "./routes/candidate.routes.js";
 import interviewRoutes from "./routes/interview.routes.js";
 import analyticsRoutes from "./routes/analytics.routes.js";
 import notificationRoutes from "./routes/notification.routes.js";
+import profileRoutes from "./routes/profile.routes.js";
 
 const app = express();
 
@@ -42,6 +43,7 @@ app.use("/api/v1/candidates", candidateRoutes);
 app.use("/api/v1/interviews", interviewRoutes);
 app.use("/api/v1/analytics", analyticsRoutes);
 app.use("/api/v1/notifications", notificationRoutes);
+app.use("/api/v1/profile", profileRoutes);
 
 // Global Error Handler (must be after all routes)
 app.use((err, req, res, next) => {

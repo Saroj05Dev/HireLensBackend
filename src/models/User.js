@@ -40,6 +40,17 @@ const userSchema = new mongoose.Schema({
         index: true
     },
 
+    avatarUrl: {
+        type: String,
+        default: null
+    },
+
+    title: {
+        type: String,
+        trim: true,
+        default: null
+    },
+
     isActive: {
         type: Boolean,
         default: true
