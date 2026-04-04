@@ -6,17 +6,19 @@ export const register = async (req, res, next) => {
     const result = await authService.register(req.body);
     const { accessToken, refreshToken } = result.tokens;
 
+    const isProduction = process.env.NODE_ENV === "production";
+
     res.cookie("accessToken", accessToken, {
       httpOnly: true,
-      sameSite: "lax",
-      secure: false, // true in production (HTTPS)
+      sameSite: isProduction ? "none" : "lax",
+      secure: isProduction,
       maxAge: 15 * 60 * 1000, // 15 minutes
     });
 
     res.cookie("refreshToken", refreshToken, {
       httpOnly: true,
-      sameSite: "lax",
-      secure: false,
+      sameSite: isProduction ? "none" : "lax",
+      secure: isProduction,
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
     });
 
@@ -37,18 +39,20 @@ export const login = async (req, res, next) => {
     try {
         const { user, tokens } = await authService.login(req.body);
 
+        const isProduction = process.env.NODE_ENV === "production";
+
         // Set httpOnly cookies
         res.cookie("accessToken", tokens.accessToken, {
             httpOnly: true,
-            sameSite: "strict",
-            secure: process.env.NODE_ENV === "production",
+            sameSite: isProduction ? "none" : "lax",
+            secure: isProduction,
             maxAge: 15 * 60 * 1000, // 15 minutes
         });
 
         res.cookie("refreshToken", tokens.refreshToken, {
             httpOnly: true,
-            sameSite: "strict",
-            secure: process.env.NODE_ENV === "production",
+            sameSite: isProduction ? "none" : "lax",
+            secure: isProduction,
             maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
         });
 
@@ -76,11 +80,13 @@ export const refresh = async (req, res, next) => {
     try {
         const token = await authService.refresh(req.cookies);
 
+        const isProduction = process.env.NODE_ENV === "production";
+
         // Set new access token cookie
         res.cookie("accessToken", token.accessToken, {
             httpOnly: true,
-            sameSite: "strict",
-            secure: process.env.NODE_ENV === "production",
+            sameSite: isProduction ? "none" : "lax",
+            secure: isProduction,
             maxAge: 15 * 60 * 1000, // 15 minutes
         });
 
@@ -128,18 +134,20 @@ export const acceptInvite = async (req, res, next) => {
         const result = await authService.acceptInvite({ token, name, password });
         const { accessToken, refreshToken } = result.tokens;
 
+        const isProduction = process.env.NODE_ENV === "production";
+
         // Set JWT tokens in httpOnly cookies
         res.cookie("accessToken", accessToken, {
             httpOnly: true,
-            sameSite: "lax",
-            secure: false, // true in production (HTTPS)
+            sameSite: isProduction ? "none" : "lax",
+            secure: isProduction,
             maxAge: 15 * 60 * 1000, // 15 minutes
         });
 
         res.cookie("refreshToken", refreshToken, {
             httpOnly: true,
-            sameSite: "lax",
-            secure: false,
+            sameSite: isProduction ? "none" : "lax",
+            secure: isProduction,
             maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
         });
 
