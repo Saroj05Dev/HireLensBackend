@@ -191,12 +191,15 @@ export const submitFeedback = async (
   
   const candidate = await candidateRepository.findById(interview.candidateId);
   
+  // Get interviewer details for notification
+  const interviewer = await userRepository.findById(user.id);
+  
   // Notify each recruiter
   for (const recruiter of recruiters) {
     await notificationService.notifyFeedbackSubmitted({
       recruiterId: recruiter._id,
       candidateName: candidate.name,
-      interviewerName: user.name,
+      interviewerName: interviewer?.name || 'An interviewer',
       organizationId: interview.organizationId,
       metadata: {
         interviewId,
