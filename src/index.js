@@ -23,10 +23,10 @@ const server = http.createServer(app);
 
 initSocket(server);
 
-// Rate limiting
+// Rate limiting - Very generous limits for production
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 1000, // Increased from 100 to 1000 requests per windowMs
+  max: 10000, // 10,000 requests per 15 minutes (very generous)
   message: "Too many requests from this IP, please try again later.",
   standardHeaders: true,
   legacyHeaders: false,
@@ -35,11 +35,11 @@ const limiter = rateLimit({
 // Apply rate limiting to all routes
 app.use(limiter);
 
-// Stricter rate limiting for auth routes
+// Rate limiting for auth routes - still protective but reasonable
 const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 20, // Increased from 5 to 20 requests per 15 minutes
-  message: "Too many login attempts, please try again later.",
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // 100 auth requests per 15 minutes (plenty for normal use)
+  message: "Too many authentication attempts, please try again later.",
 });
 
 // Middlewares
