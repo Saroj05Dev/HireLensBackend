@@ -67,8 +67,16 @@ export const login = async (req, res, next) => {
 }
 
 export const logout = async (req, res, next) => {
-    res.clearCookie("accessToken");
-    res.clearCookie("refreshToken");
+    const isProduction = process.env.NODE_ENV === "production";
+
+    const cookieOptions = {
+        httpOnly: true,
+        sameSite: isProduction ? "none" : "lax",
+        secure: isProduction,
+    };
+
+    res.clearCookie("accessToken", cookieOptions);
+    res.clearCookie("refreshToken", cookieOptions);
 
     return res.status(200).json({
         success: true,
