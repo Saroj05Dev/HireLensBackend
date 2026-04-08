@@ -74,6 +74,24 @@ export const updateCandidateStage = async (req, res, next) => {
   }
 };
 
+export const reopenCandidate = async (req, res, next) => {
+  try {
+    const result = await candidateService.reopenCandidate(
+      req.user,
+      req.params.candidateId,
+      req.body
+    );
+
+    res.json({
+      success: true,
+      data: result,
+      message: "Candidate reopened successfully"
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 export const getCandidateDecisionLogs = async (req, res, next) => {
   try {
     const logs = await candidateService.getCandidateDecisionLogs(

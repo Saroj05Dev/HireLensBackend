@@ -6,6 +6,7 @@ import {
   getCandidatesByJob, 
   getCandidateProfile, 
   updateCandidateStage,
+  reopenCandidate,
   getAllCandidates,
   getCandidateDecisionLogs,
   getInterviewsByCandidate,
@@ -48,6 +49,13 @@ router.patch(
   auth,
   role("RECRUITER"),
   updateCandidateStage
+);
+
+router.patch(
+  "/:candidateId/reopen",
+  auth,
+  role("RECRUITER"),
+  reopenCandidate
 );
 
 router.get(

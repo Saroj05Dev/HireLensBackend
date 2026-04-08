@@ -25,7 +25,7 @@ const decisionLogSchema = new mongoose.Schema(
 
     actionType: {
       type: String,
-      enum: ["STAGE_CHANGE", "INTERVIEW_ASSIGNED", "FEEDBACK_SUBMITTED"],
+      enum: ["STAGE_CHANGE", "INTERVIEW_ASSIGNED", "FEEDBACK_SUBMITTED", "REOPENED"],
       required: true,
     },
 
