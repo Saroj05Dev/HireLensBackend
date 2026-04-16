@@ -13,9 +13,10 @@ const uploadResumeToCloudinary = async (file) => {
       const uploadStream = cloudinary.uploader.upload_stream(
         {
           folder: "hirelens/resumes",
-          resource_type: "raw",
+          resource_type: "auto",
           use_filename: true,
           unique_filename: true,
+          filename_override: file.originalname,
         },
         (error, uploadResult) => {
           if (error) reject(error);
