@@ -106,6 +106,18 @@ app.use("/api/v1/profile", profileRoutes);
 
 // Global Error Handler (must be after all routes)
 app.use((err, req, res, next) => {
+  if (err?.name === "MulterError") {
+    const message = err.code === "LIMIT_FILE_SIZE"
+      ? "Resume file size must be 5MB or less"
+      : err.message;
+
+    return res.status(400).json({
+      success: false,
+      message,
+      ...(process.env.NODE_ENV === "development" && { stack: err.stack }),
+    });
+  }
+
   // Handle database errors
   const finalError = handleDatabaseError(err);
   

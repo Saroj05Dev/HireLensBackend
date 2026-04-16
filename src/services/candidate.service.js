@@ -1,12 +1,38 @@
 import mongoose from "mongoose";
 import ApiError from "../utils/ApiError.js";
+import cloudinary from "../config/cloudinary.config.js";
 import { getIO } from "../config/socket.js";
 import * as candidateRepository from "../repositories/candidate.repository.js";
 import * as jobRepository from "../repositories/job.repository.js";
 import * as decisionLogRepository from "../repositories/decisionLog.repository.js";
 import * as interviewRepository from "../repositories/interview.repository.js";
 
-export const addCandidate = async (user, payload) => {
+const uploadResumeToCloudinary = async (file) => {
+  try {
+    const result = await new Promise((resolve, reject) => {
+      const uploadStream = cloudinary.uploader.upload_stream(
+        {
+          folder: "hirelens/resumes",
+          resource_type: "raw",
+          use_filename: true,
+          unique_filename: true,
+        },
+        (error, uploadResult) => {
+          if (error) reject(error);
+          else resolve(uploadResult);
+        }
+      );
+
+      uploadStream.end(file.buffer);
+    });
+
+    return result.secure_url;
+  } catch (error) {
+    throw new ApiError(500, `Failed to upload resume: ${error.message}`);
+  }
+};
+
+export const addCandidate = async (user, payload, file) => {
   const { jobId, name, email, phone, resumeUrl } = payload;
 
   if (!jobId || !name) {
@@ -19,13 +45,17 @@ export const addCandidate = async (user, payload) => {
     throw new ApiError(404, "Job not found in your organization");
   }
 
+  const finalResumeUrl = file
+    ? await uploadResumeToCloudinary(file)
+    : resumeUrl;
+
   // 2. Create candidate record
   return candidateRepository.create({
     organizationId: user.organizationId,
     name,
     email,
     phone,
-    resumeUrl,
+    resumeUrl: finalResumeUrl,
     jobId,
     addedBy: user.id,
   });
