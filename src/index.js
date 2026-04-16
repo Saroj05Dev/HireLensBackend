@@ -7,6 +7,7 @@ import helmet from "helmet";
 import { SERVER_CONFIG } from "./config/server.config.js";
 import connectDB from "./config/db.config.js";
 import initSocket from "./config/socket.js";
+import { handleDatabaseError } from "./utils/errorHandler.js";
 
 import authRoutes from "./routes/auth.routes.js";
 import jobRoutes from "./routes/job.routes.js";
@@ -105,8 +106,11 @@ app.use("/api/v1/profile", profileRoutes);
 
 // Global Error Handler (must be after all routes)
 app.use((err, req, res, next) => {
-  const statusCode = err.statusCode || 500;
-  const message = err.message || "Internal Server Error";
+  // Handle database errors
+  const finalError = handleDatabaseError(err);
+  
+  const statusCode = finalError.statusCode || 500;
+  const message = finalError.message || "Internal Server Error";
 
   // Log error for debugging
   console.error(`[ERROR] ${statusCode}: ${message}`, err);
