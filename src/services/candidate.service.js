@@ -17,9 +17,51 @@ const makeSafePublicId = (fileName) => {
     .slice(0, 80);
 };
 
+const extractCloudinaryPublicId = (resumeUrl) => {
+  if (!resumeUrl || !resumeUrl.includes("res.cloudinary.com")) {
+    return null;
+  }
+
+  const match = resumeUrl.match(/\/upload\/(?:v\d+\/)?(.+)\.[^.?#]+(?:\?.*)?$/);
+  return match?.[1] || null;
+};
+
+const buildResumeViewUrl = (candidate) => {
+  const storedResumeUrl = candidate.resumeUrl;
+  const publicId = candidate.resumePublicId || extractCloudinaryPublicId(storedResumeUrl);
+
+  if (!publicId) {
+    return storedResumeUrl;
+  }
+
+  const extensionMatch = storedResumeUrl?.match(/\.([a-z0-9]+)(?:\?.*)?$/i);
+  const format = extensionMatch?.[1] || "pdf";
+
+  return cloudinary.url(publicId, {
+    secure: true,
+    sign_url: true,
+    resource_type: "image",
+    type: "upload",
+    format,
+  });
+};
+
+const serializeCandidate = (candidate) => {
+  if (!candidate) return candidate;
+
+  const plainCandidate = typeof candidate.toObject === "function"
+    ? candidate.toObject()
+    : { ...candidate };
+
+  return {
+    ...plainCandidate,
+    resumeUrl: buildResumeViewUrl(plainCandidate),
+  };
+};
+
 const uploadResumeToCloudinary = async (file) => {
   try {
-    const safePublicId = `hirelens/resumes/${makeSafePublicId(file.originalname)}-${Date.now()}`;
+    const safePublicId = `${makeSafePublicId(file.originalname)}-${Date.now()}`;
 
     const result = await new Promise((resolve, reject) => {
       const uploadStream = cloudinary.uploader.upload_stream(
@@ -38,7 +80,10 @@ const uploadResumeToCloudinary = async (file) => {
       uploadStream.end(file.buffer);
     });
 
-    return result.secure_url;
+    return {
+      resumeUrl: result.secure_url,
+      resumePublicId: result.public_id,
+    };
   } catch (error) {
     throw new ApiError(500, `Failed to upload resume: ${error.message}`);
   }
@@ -57,20 +102,23 @@ export const addCandidate = async (user, payload, file) => {
     throw new ApiError(404, "Job not found in your organization");
   }
 
-  const finalResumeUrl = file
+  const uploadedResume = file
     ? await uploadResumeToCloudinary(file)
     : resumeUrl;
 
   // 2. Create candidate record
-  return candidateRepository.create({
+  const candidate = await candidateRepository.create({
     organizationId: user.organizationId,
     name,
     email,
     phone,
-    resumeUrl: finalResumeUrl,
+    resumeUrl: file ? uploadedResume.resumeUrl : uploadedResume,
+    resumePublicId: file ? uploadedResume.resumePublicId : extractCloudinaryPublicId(uploadedResume),
     jobId,
     addedBy: user.id,
   });
+
+  return serializeCandidate(candidate);
 };
 
 export const getCandidatesByJob = async (user, jobId) => {
@@ -78,7 +126,7 @@ export const getCandidatesByJob = async (user, jobId) => {
 
   return candidates.filter(
     (c) => c.organizationId.toString() === user.organizationId
-  );
+  ).map(serializeCandidate);
 };
 
 export const getAllCandidates = async (user, filters) => {
@@ -89,7 +137,7 @@ export const getAllCandidates = async (user, filters) => {
     { stage, jobId }
   );
 
-  return candidates;
+  return candidates.map(serializeCandidate);
 };
 
 export const getCandidateProfile = async (user, candidateId) => {
@@ -102,7 +150,7 @@ export const getCandidateProfile = async (user, candidateId) => {
     throw new ApiError(404, "Candidate not found in your organization");
   }
 
-  return candidate;
+  return serializeCandidate(candidate);
 };
 
 // Stage order for linear progression validation

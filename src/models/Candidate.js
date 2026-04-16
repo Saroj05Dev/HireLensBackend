@@ -36,6 +36,11 @@ const candidateSchema = new mongoose.Schema({
         type: String,
     },
 
+    resumePublicId: {
+        type: String,
+        default: null,
+    },
+
     currentStage: {
         type: String,
         enum: [
