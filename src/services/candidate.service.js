@@ -7,16 +7,27 @@ import * as jobRepository from "../repositories/job.repository.js";
 import * as decisionLogRepository from "../repositories/decisionLog.repository.js";
 import * as interviewRepository from "../repositories/interview.repository.js";
 
+const makeSafePublicId = (fileName) => {
+  const baseName = fileName.replace(/\.[^/.]+$/, "");
+  return baseName
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 80);
+};
+
 const uploadResumeToCloudinary = async (file) => {
   try {
+    const safePublicId = `hirelens/resumes/${makeSafePublicId(file.originalname)}-${Date.now()}`;
+
     const result = await new Promise((resolve, reject) => {
       const uploadStream = cloudinary.uploader.upload_stream(
         {
           folder: "hirelens/resumes",
           resource_type: "auto",
-          use_filename: true,
-          unique_filename: true,
-          filename_override: file.originalname,
+          public_id: safePublicId,
+          overwrite: false,
         },
         (error, uploadResult) => {
           if (error) reject(error);
