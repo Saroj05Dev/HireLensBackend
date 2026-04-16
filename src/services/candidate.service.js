@@ -27,23 +27,10 @@ const extractCloudinaryPublicId = (resumeUrl) => {
 };
 
 const buildResumeViewUrl = (candidate) => {
-  const storedResumeUrl = candidate.resumeUrl;
-  const publicId = candidate.resumePublicId || extractCloudinaryPublicId(storedResumeUrl);
-
-  if (!publicId) {
-    return storedResumeUrl;
-  }
-
-  const extensionMatch = storedResumeUrl?.match(/\.([a-z0-9]+)(?:\?.*)?$/i);
-  const format = extensionMatch?.[1] || "pdf";
-
-  return cloudinary.url(publicId, {
-    secure: true,
-    sign_url: true,
-    resource_type: "image",
-    type: "upload",
-    format,
-  });
+  // Just return the stored URL directly — it's already a valid Cloudinary public URL.
+  // Signed URLs expire and cause 401 errors; re-generating with cloudinary.url() also
+  // duplicates the folder path since public_id already includes it.
+  return candidate.resumeUrl || null;
 };
 
 const serializeCandidate = (candidate) => {
@@ -67,7 +54,7 @@ const uploadResumeToCloudinary = async (file) => {
       const uploadStream = cloudinary.uploader.upload_stream(
         {
           folder: "hirelens/resumes",
-          resource_type: "auto",
+          resource_type: "raw",
           public_id: safePublicId,
           overwrite: false,
         },
