@@ -388,30 +388,36 @@ const buildStageChangeHtml = ({ candidateName, jobTitle, fromStage, toStage, org
 };
 
 // ─── 4. OTP Verification Email ────────────────────────────────────────────────
-const buildOTPHtml = ({ email, otp }) => {
+const buildOTPHtml = ({ email, otp, purpose = "SIGNUP" }) => {
+  const isPasswordReset = purpose === "PASSWORD_RESET";
+  
   return wrap(
-    "linear-gradient(135deg, #f59e0b 0%, #d97706 100%)",
+    isPasswordReset 
+      ? "linear-gradient(135deg, #ef4444 0%, #dc2626 100%)"
+      : "linear-gradient(135deg, #f59e0b 0%, #d97706 100%)",
     `
-    <h1 style="color:#ffffff;margin:0;font-size:26px;font-weight:700;line-height:1.3;">Verify Your Email</h1>
-    <p style="color:#fef3c7;margin:8px 0 0;font-size:15px;">Complete your HireLens registration</p>
+    <h1 style="color:#ffffff;margin:0;font-size:26px;font-weight:700;line-height:1.3;">${isPasswordReset ? 'Reset Your Password' : 'Verify Your Email'}</h1>
+    <p style="color:${isPasswordReset ? '#fecaca' : '#fef3c7'};margin:8px 0 0;font-size:15px;">${isPasswordReset ? 'Secure your HireLens account' : 'Complete your HireLens registration'}</p>
     `,
     `
     <p style="color:#111827;font-size:16px;line-height:1.6;margin:0 0 20px;">
       Hello! 👋
     </p>
     <p style="color:#374151;font-size:15px;line-height:1.7;margin:0 0 28px;">
-      Thank you for signing up with <strong>HireLens</strong>. To complete your registration, please verify your email address using the code below.
+      ${isPasswordReset 
+        ? 'We received a request to reset your password for your <strong>HireLens</strong> account. Use the code below to reset your password.' 
+        : 'Thank you for signing up with <strong>HireLens</strong>. To complete your registration, please verify your email address using the code below.'}
     </p>
 
     <!-- OTP Code Card -->
     <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin:0 0 28px;">
       <tr>
-        <td style="text-align:center;padding:32px 20px;background:linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);border-radius:12px;border:2px solid #f59e0b;">
-          <p style="margin:0 0 12px;font-size:13px;color:#92400e;font-weight:600;text-transform:uppercase;letter-spacing:1px;">Your Verification Code</p>
+        <td style="text-align:center;padding:32px 20px;background:linear-gradient(135deg, ${isPasswordReset ? '#fef2f2' : '#fffbeb'} 0%, ${isPasswordReset ? '#fecaca' : '#fef3c7'} 100%);border-radius:12px;border:2px solid ${isPasswordReset ? '#ef4444' : '#f59e0b'};">
+          <p style="margin:0 0 12px;font-size:13px;color:${isPasswordReset ? '#991b1b' : '#92400e'};font-weight:600;text-transform:uppercase;letter-spacing:1px;">Your ${isPasswordReset ? 'Reset' : 'Verification'} Code</p>
           <div style="display:inline-block;background:#ffffff;padding:20px 40px;border-radius:10px;box-shadow:0 4px 6px rgba(0,0,0,0.1);margin:0 0 12px;">
-            <span style="font-size:36px;font-weight:700;color:#d97706;letter-spacing:8px;font-family:'Courier New',monospace;">${otp}</span>
+            <span style="font-size:36px;font-weight:700;color:${isPasswordReset ? '#dc2626' : '#d97706'};letter-spacing:8px;font-family:'Courier New',monospace;">${otp}</span>
           </div>
-          <p style="margin:0;font-size:12px;color:#92400e;">⏰ This code expires in <strong>10 minutes</strong></p>
+          <p style="margin:0;font-size:12px;color:${isPasswordReset ? '#991b1b' : '#92400e'};">⏰ This code expires in <strong>10 minutes</strong></p>
         </td>
       </tr>
     </table>
@@ -421,7 +427,9 @@ const buildOTPHtml = ({ email, otp }) => {
       <tr>
         <td style="padding:16px 20px;">
           <p style="margin:0 0 8px;font-size:13px;color:#991b1b;font-weight:600;">🔒 Security Notice</p>
-          <p style="margin:0;font-size:13px;color:#7f1d1d;line-height:1.6;">Never share this code with anyone. HireLens will never ask for your verification code via phone or email.</p>
+          <p style="margin:0;font-size:13px;color:#7f1d1d;line-height:1.6;">${isPasswordReset 
+            ? 'If you didn\'t request a password reset, please ignore this email or contact support if you have concerns about your account security.' 
+            : 'Never share this code with anyone. HireLens will never ask for your verification code via phone or email.'}</p>
         </td>
       </tr>
     </table>
@@ -430,10 +438,12 @@ const buildOTPHtml = ({ email, otp }) => {
     <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="border-top:1px solid #e5e7eb;padding-top:20px;">
       <tr>
         <td>
-          <p style="margin:0 0 8px;font-size:13px;color:#6b7280;"><strong>Verification Details:</strong></p>
+          <p style="margin:0 0 8px;font-size:13px;color:#6b7280;"><strong>${isPasswordReset ? 'Reset' : 'Verification'} Details:</strong></p>
           <p style="margin:0 0 4px;font-size:13px;color:#6b7280;">📧 Email: <strong>${email}</strong></p>
           <p style="margin:0 0 4px;font-size:13px;color:#6b7280;">📅 Requested: <strong>${new Date().toLocaleString("en-US", { dateStyle: "medium", timeStyle: "short" })}</strong></p>
-          <p style="margin:16px 0 0;font-size:12px;color:#9ca3af;line-height:1.5;">If you didn't request this code, please ignore this email or contact support if you have concerns.</p>
+          ${isPasswordReset 
+            ? '<p style="margin:16px 0 0;font-size:12px;color:#9ca3af;line-height:1.5;">If you didn\'t request this code, your account is still secure. You can safely ignore this email.</p>' 
+            : '<p style="margin:16px 0 0;font-size:12px;color:#9ca3af;line-height:1.5;">If you didn\'t request this code, please ignore this email or contact support if you have concerns.</p>'}
         </td>
       </tr>
     </table>
@@ -446,24 +456,26 @@ const buildOTPHtml = ({ email, otp }) => {
 /**
  * Send OTP verification email
  */
-export const sendOTPEmail = async ({ email, otp }) => {
+export const sendOTPEmail = async ({ email, otp, purpose = "SIGNUP" }) => {
   if (!apiInstance) {
     console.warn("[Email] Brevo not configured - skipping OTP email to", email);
     return { success: false, error: "Brevo not configured" };
   }
 
   try {
-    console.log(`[Email] Sending OTP email to ${email}...`);
+    console.log(`[Email] Sending ${purpose} OTP email to ${email}...`);
     
     const sendSmtpEmail = new brevo.SendSmtpEmail();
     sendSmtpEmail.sender = { email: FROM };
     sendSmtpEmail.to = [{ email }];
-    sendSmtpEmail.subject = `Your HireLens Verification Code: ${otp}`;
-    sendSmtpEmail.htmlContent = buildOTPHtml({ email, otp });
+    sendSmtpEmail.subject = purpose === "PASSWORD_RESET" 
+      ? `Your HireLens Password Reset Code: ${otp}`
+      : `Your HireLens Verification Code: ${otp}`;
+    sendSmtpEmail.htmlContent = buildOTPHtml({ email, otp, purpose });
 
     const data = await apiInstance.sendTransacEmail(sendSmtpEmail);
 
-    console.log(`[Email] OTP sent to ${email} (id: ${data.messageId})`);
+    console.log(`[Email] ${purpose} OTP sent to ${email} (id: ${data.messageId})`);
     return { success: true, id: data.messageId };
   } catch (err) {
     console.error("[Email] Failed to send OTP email:", err.message);

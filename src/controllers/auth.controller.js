@@ -27,6 +27,45 @@ export const verifyOTP = async (req, res, next) => {
   }
 };
 
+export const sendPasswordResetOTP = async (req, res, next) => {
+  try {
+    const result = await authService.sendPasswordResetOTP(req.body);
+    return res.status(200).json({
+      success: true,
+      data: result,
+      message: "Password reset code sent successfully",
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const verifyPasswordResetOTP = async (req, res, next) => {
+  try {
+    const result = await authService.verifyPasswordResetOTP(req.body);
+    return res.status(200).json({
+      success: true,
+      data: result,
+      message: "OTP verified successfully",
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const resetPassword = async (req, res, next) => {
+  try {
+    const result = await authService.resetPassword(req.body);
+    return res.status(200).json({
+      success: true,
+      data: result,
+      message: "Password reset successfully",
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 export const register = async (req, res, next) => {
   try {
     const result = await authService.register(req.body);

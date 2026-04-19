@@ -85,6 +85,111 @@ export const verifySignupOTP = async ({ email, otp }) => {
   };
 };
 
+/**
+ * Send OTP to email for password reset
+ */
+export const sendPasswordResetOTP = async ({ email }) => {
+  if (!email) {
+    throw new ApiError(400, "Email is required");
+  }
+
+  // Check if user exists
+  const user = await userRepository.findByEmail(email);
+  if (!user) {
+    // Don't reveal if user exists or not for security
+    return {
+      message: "If an account exists with this email, you will receive a password reset code",
+      email,
+    };
+  }
+
+  // Generate 6-digit OTP
+  const otp = generateOTP();
+
+  // Save OTP to database
+  await otpRepository.create({
+    email,
+    otp,
+    purpose: "PASSWORD_RESET",
+  });
+
+  // Send OTP email
+  const emailResult = await sendOTPEmail({ email, otp, purpose: "PASSWORD_RESET" });
+
+  if (!emailResult.success) {
+    throw new ApiError(500, "Failed to send password reset email");
+  }
+
+  return {
+    message: "Password reset code sent successfully",
+    email,
+  };
+};
+
+/**
+ * Verify OTP for password reset
+ */
+export const verifyPasswordResetOTP = async ({ email, otp }) => {
+  if (!email || !otp) {
+    throw new ApiError(400, "Email and OTP are required");
+  }
+
+  // Find valid OTP
+  const otpRecord = await otpRepository.findValidOTP(email, "PASSWORD_RESET");
+
+  if (!otpRecord) {
+    throw new ApiError(401, "Invalid or expired OTP");
+  }
+
+  // Check if OTP matches
+  if (otpRecord.otp !== otp) {
+    throw new ApiError(401, "Invalid OTP");
+  }
+
+  // Mark OTP as verified
+  await otpRepository.markVerified(otpRecord._id);
+
+  return {
+    message: "OTP verified successfully",
+    email,
+    verified: true,
+  };
+};
+
+/**
+ * Reset password after OTP verification
+ */
+export const resetPassword = async ({ email, newPassword }) => {
+  if (!email || !newPassword) {
+    throw new ApiError(400, "Email and new password are required");
+  }
+
+  // Verify that email has been verified via OTP
+  const hasVerifiedOTP = await otpRepository.hasRecentVerifiedOTP(email, "PASSWORD_RESET");
+  if (!hasVerifiedOTP) {
+    throw new ApiError(403, "Please verify your email first");
+  }
+
+  // Find user
+  const user = await userRepository.findByEmail(email);
+  if (!user) {
+    throw new ApiError(404, "User not found");
+  }
+
+  // Hash new password
+  const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+  // Update password
+  await userRepository.updatePassword(user._id, hashedPassword);
+
+  // Clean up OTP records for this email
+  await otpRepository.deleteByEmail(email, "PASSWORD_RESET");
+
+  return {
+    message: "Password reset successfully",
+  };
+};
+
 export const register = async ({ name, email, password, organizationName }) => {
   // Start a session for transaction
   const session = await mongoose.startSession();

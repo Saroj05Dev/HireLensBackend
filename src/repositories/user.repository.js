@@ -39,3 +39,11 @@ export const findByOrganizationAndRole = async (organizationId, role) => {
     .select("_id name email role")
     .sort({ name: 1 });
 };
+
+export const updatePassword = async (userId, hashedPassword) => {
+  return User.findByIdAndUpdate(
+    userId,
+    { password: hashedPassword },
+    { new: true }
+  );
+};
