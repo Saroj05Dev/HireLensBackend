@@ -5,6 +5,8 @@ import { SERVER_CONFIG } from "../config/server.config.js";
 import ApiError from "../utils/ApiError.js";
 import * as userRepository from "../repositories/user.repository.js";
 import * as inviteRepository from "../repositories/invite.repository.js";
+import * as organizationRepository from "../repositories/organization.repository.js";
+import { sendInviteEmail } from "./email.service.js";
 
 export const inviteUser = async (
     adminUser,
@@ -50,6 +52,26 @@ export const inviteUser = async (
     });
 
     // 7. Return invite details and invitation URL
+    const inviteUrl = `${SERVER_CONFIG.FRONTEND_URL}/invite/${token}`;
+
+    // 8. Fetch organization name for the email
+    const organization = await organizationRepository.findById(adminUser.organizationId);
+    const organizationName = organization?.name || "HireLens";
+
+    // 9. Send invite email (fire-and-forget — don't block the response)
+    console.log(`[Invite] Attempting to send email to ${email} for org ${organizationName}`);
+    sendInviteEmail({
+        email,
+        role: normalizedRole,
+        organizationName,
+        inviteUrl,
+        expiresAt,
+    }).then(result => {
+        console.log(`[Invite] Email send result:`, result);
+    }).catch((err) => {
+        console.error("[Invite] Email send error:", err);
+    });
+
     return {
         invite: {
             id: invite._id,
@@ -59,7 +81,7 @@ export const inviteUser = async (
             expiresAt: invite.expiresAt,
             createdAt: invite.createdAt
         },
-        inviteUrl: `https://hirelens.app/invite/${token}`
+        inviteUrl,
     };
 }
 

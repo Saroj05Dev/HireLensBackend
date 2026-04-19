@@ -6,6 +6,9 @@ import * as userRepository from "../repositories/user.repository.js";
 import * as feedbackRepository from "../repositories/feedback.repository.js";
 import * as decisionLogRepository from "../repositories/decisionLog.repository.js";
 import * as notificationService from "./notification.service.js";
+import * as jobRepository from "../repositories/job.repository.js";
+import * as organizationRepository from "../repositories/organization.repository.js";
+import { sendInterviewScheduledEmail } from "./email.service.js";
 
 /**
  * Assign interviewer to candidate
@@ -111,6 +114,21 @@ export const assignInterviewer = async (
       jobId: candidate.jobId
     }
   });
+
+  // Send interview scheduled email to the interviewer (fire-and-forget)
+  const [job, organization] = await Promise.all([
+    jobRepository.findById(candidate.jobId),
+    organizationRepository.findById(user.organizationId),
+  ]);
+
+  sendInterviewScheduledEmail({
+    interviewerEmail: interviewer.email,
+    interviewerName: interviewer.name,
+    candidateName: candidate.name,
+    jobTitle: job?.title || "Unknown Position",
+    scheduledAt,
+    organizationName: organization?.name || "HireLens",
+  }).catch((err) => console.error("[Email] Interview scheduled email error:", err));
 
   return interview;
 };

@@ -6,6 +6,8 @@ import * as candidateRepository from "../repositories/candidate.repository.js";
 import * as jobRepository from "../repositories/job.repository.js";
 import * as decisionLogRepository from "../repositories/decisionLog.repository.js";
 import * as interviewRepository from "../repositories/interview.repository.js";
+import * as organizationRepository from "../repositories/organization.repository.js";
+import { sendStageChangeEmail } from "./email.service.js";
 
 const makeSafePublicId = (fileName) => {
   const baseName = fileName.replace(/\.[^/.]+$/, "");
@@ -264,6 +266,24 @@ export const updateCandidateStage = async (
       note,
       createdAt: new Date(),
     });
+
+    // Send stage change email to the candidate (fire-and-forget)
+    if (candidate.email) {
+      Promise.all([
+        jobRepository.findById(candidate.jobId),
+        organizationRepository.findById(user.organizationId),
+      ]).then(([job, organization]) => {
+        sendStageChangeEmail({
+          candidateEmail: candidate.email,
+          candidateName: candidate.name,
+          jobTitle: job?.title || "the position",
+          fromStage,
+          toStage: newStage,
+          organizationName: organization?.name || "HireLens",
+          note,
+        });
+      }).catch((err) => console.error("[Email] Stage change email error:", err));
+    }
 
     return {
       candidateId: candidate._id,
