@@ -1,12 +1,89 @@
 import mongoose from "mongoose";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
+import crypto from "crypto";
 
 import * as organizationRepository from "../repositories/organization.repository.js";
 import * as userRepository from "../repositories/user.repository.js";
 import * as inviteRepository from "../repositories/invite.repository.js";
+import * as otpRepository from "../repositories/otp.repository.js";
 import { generateToken } from "../utils/tokenService.js";
+import { sendOTPEmail } from "./email.service.js";
 import ApiError from "../utils/ApiError.js";
+
+/**
+ * Generate a 6-digit OTP
+ */
+const generateOTP = () => {
+  return crypto.randomInt(100000, 999999).toString();
+};
+
+/**
+ * Send OTP to email for signup verification
+ */
+export const sendSignupOTP = async ({ email }) => {
+  if (!email) {
+    throw new ApiError(400, "Email is required");
+  }
+
+  // Check if user already exists
+  const existingUser = await userRepository.findByEmail(email);
+  if (existingUser) {
+    throw new ApiError(409, "User with this email already exists");
+  }
+
+  // Generate 6-digit OTP
+  const otp = generateOTP();
+
+  // Save OTP to database
+  await otpRepository.create({
+    email,
+    otp,
+    purpose: "SIGNUP",
+  });
+
+  // Send OTP email
+  const emailResult = await sendOTPEmail({ email, otp });
+
+  if (!emailResult.success) {
+    throw new ApiError(500, "Failed to send OTP email");
+  }
+
+  return {
+    message: "OTP sent successfully",
+    email,
+  };
+};
+
+/**
+ * Verify OTP for signup
+ */
+export const verifySignupOTP = async ({ email, otp }) => {
+  if (!email || !otp) {
+    throw new ApiError(400, "Email and OTP are required");
+  }
+
+  // Find valid OTP
+  const otpRecord = await otpRepository.findValidOTP(email, "SIGNUP");
+
+  if (!otpRecord) {
+    throw new ApiError(401, "Invalid or expired OTP");
+  }
+
+  // Check if OTP matches
+  if (otpRecord.otp !== otp) {
+    throw new ApiError(401, "Invalid OTP");
+  }
+
+  // Mark OTP as verified
+  await otpRepository.markVerified(otpRecord._id);
+
+  return {
+    message: "Email verified successfully",
+    email,
+    verified: true,
+  };
+};
 
 export const register = async ({ name, email, password, organizationName }) => {
   // Start a session for transaction
@@ -20,7 +97,13 @@ export const register = async ({ name, email, password, organizationName }) => {
       throw new ApiError(409, "User with this email already exists");
     }
 
-    // 2. Create Organization
+    // 2. Verify that email has been verified via OTP
+    const hasVerifiedOTP = await otpRepository.hasRecentVerifiedOTP(email, "SIGNUP");
+    if (!hasVerifiedOTP) {
+      throw new ApiError(403, "Email not verified. Please verify your email first.");
+    }
+
+    // 3. Create Organization
     const organization = await organizationRepository.create(
       {
         name: organizationName,
@@ -28,10 +111,10 @@ export const register = async ({ name, email, password, organizationName }) => {
       session
     );
 
-    // 3. Hash password
+    // 4. Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // 4. Create Admin User
+    // 5. Create Admin User
     const user = await userRepository.create(
       {
         name,
@@ -43,19 +126,23 @@ export const register = async ({ name, email, password, organizationName }) => {
       session
     );
 
-    // 5. Set organization owner
+    // 6. Set organization owner
     await organizationRepository.updateOwner(
       organization._id,
       user._id,
       session // pass the session to ensure it's part of the transaction
     );
 
-    // 6. Generate tokens
+    // 7. Generate tokens
     const tokens = generateToken({
       userId: user._id,
       role: user.role,
       organizationId: user.organizationId,
     });
+
+    // 8. Clean up OTP records for this email
+    await otpRepository.deleteByEmail(email, "SIGNUP");
+
     // Commit transaction
     await session.commitTransaction();
     session.endSession();

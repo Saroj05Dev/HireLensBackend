@@ -1,6 +1,32 @@
 import * as authService from "../services/auth.service.js";
 import * as organizationService from "../services/organization.service.js";
 
+export const sendOTP = async (req, res, next) => {
+  try {
+    const result = await authService.sendSignupOTP(req.body);
+    return res.status(200).json({
+      success: true,
+      data: result,
+      message: "OTP sent successfully",
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const verifyOTP = async (req, res, next) => {
+  try {
+    const result = await authService.verifySignupOTP(req.body);
+    return res.status(200).json({
+      success: true,
+      data: result,
+      message: "OTP verified successfully",
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 export const register = async (req, res, next) => {
   try {
     const result = await authService.register(req.body);
