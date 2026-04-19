@@ -98,6 +98,7 @@ export const assignInterviewer = async (
     interviewId: interview._id,
     candidateId,
     jobId: candidate.jobId,
+    interviewerId,
     scheduledAt,
   });
 
