@@ -14,6 +14,20 @@ export const addCandidate = async (req, res, next) => {
     }
 }
 
+export const parseResume = async (req, res, next) => {
+  try {
+    const parsed = await candidateService.parseResumeProfile(req.file);
+
+    res.status(200).json({
+      success: true,
+      data: parsed,
+      message: "Resume parsed successfully",
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 export const getCandidatesByJob = async (req, res, next) => {
     try {
         const candidate = await candidateService.getCandidatesByJob(req.user, req.params.jobId);

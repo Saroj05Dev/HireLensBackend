@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import { createRequire } from "module";
 import ApiError from "../utils/ApiError.js";
 import cloudinary from "../config/cloudinary.config.js";
 import { getIO } from "../config/socket.js";
@@ -8,6 +9,9 @@ import * as decisionLogRepository from "../repositories/decisionLog.repository.j
 import * as interviewRepository from "../repositories/interview.repository.js";
 import * as organizationRepository from "../repositories/organization.repository.js";
 import { sendStageChangeEmail } from "./email.service.js";
+
+const require = createRequire(import.meta.url);
+const { PDFParse } = require("pdf-parse");
 
 const makeSafePublicId = (fileName) => {
   const baseName = fileName.replace(/\.[^/.]+$/, "");
@@ -33,6 +37,129 @@ const buildResumeViewUrl = (candidate) => {
   // Signed URLs expire and cause 401 errors; re-generating with cloudinary.url() also
   // duplicates the folder path since public_id already includes it.
   return candidate.resumeUrl || null;
+};
+
+const extractEmailFromText = (text) => {
+  if (!text) return null;
+  const match = text.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/);
+  return match?.[0]?.toLowerCase() || null;
+};
+
+const normalizePhoneNumber = (rawPhone) => {
+  if (!rawPhone) return null;
+
+  const cleaned = rawPhone
+    .replace(/[^\d+]/g, "")
+    .replace(/(?!^)\+/g, "");
+
+  const digitCount = cleaned.replace(/\D/g, "").length;
+  if (digitCount < 10 || digitCount > 15) return null;
+
+  return cleaned;
+};
+
+const extractPhoneFromText = (text) => {
+  if (!text) return null;
+
+  const phonePattern =
+    /(?:\+?\d{1,3}[\s.-]?)?(?:\(?\d{2,5}\)?[\s.-]?)?\d{3,4}[\s.-]?\d{3,4}/g;
+  const matches = text.match(phonePattern) || [];
+
+  for (const candidatePhone of matches) {
+    const normalized = normalizePhoneNumber(candidatePhone);
+    if (normalized) return normalized;
+  }
+
+  return null;
+};
+
+const looksLikeAddressLine = (line) =>
+  /(street|road|rd\b|lane|ln\b|avenue|ave\b|city|state|zip|pincode|address)/i.test(line);
+
+const looksLikeResumeHeading = (line) =>
+  /(resume|curriculum vitae|cv|profile|summary|objective)/i.test(line);
+
+const isValidName = (line) => {
+  if (!line) return false;
+  if (line.length < 3 || line.length > 60) return false;
+  if (/\d/.test(line)) return false;
+  if (/@/.test(line)) return false;
+  if (looksLikeAddressLine(line) || looksLikeResumeHeading(line)) return false;
+
+  const words = line.split(/\s+/).filter(Boolean);
+  if (words.length < 2 || words.length > 5) return false;
+
+  return words.every((word) => /^[A-Za-z][A-Za-z'`.-]*$/.test(word));
+};
+
+const toTitleCase = (text) =>
+  text
+    .toLowerCase()
+    .split(/\s+/)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+
+const extractNameFromText = (text) => {
+  if (!text) return null;
+
+  const lines = text
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .slice(0, 25);
+
+  for (const line of lines) {
+    if (isValidName(line)) {
+      return toTitleCase(line.replace(/[^A-Za-z\s'`.-]/g, "").trim());
+    }
+  }
+
+  return null;
+};
+
+const parseCandidateContactFromResume = (text) => ({
+  name: extractNameFromText(text),
+  email: extractEmailFromText(text),
+  phone: extractPhoneFromText(text),
+});
+
+export const parseResumeProfile = async (file) => {
+  if (!file) {
+    throw new ApiError(400, "Resume file is required");
+  }
+
+  if (file.mimetype !== "application/pdf") {
+    throw new ApiError(400, "Resume parsing currently supports PDF files only");
+  }
+
+  let parser;
+  let parsedPdf;
+  try {
+    parser = new PDFParse({ data: file.buffer });
+    parsedPdf = await parser.getText();
+  } catch (error) {
+    const reason = error?.message ? ` (${error.message})` : "";
+    throw new ApiError(400, `Failed to read PDF resume. Please upload a valid PDF file${reason}`);
+  } finally {
+    if (parser?.destroy) {
+      try {
+        await parser.destroy();
+      } catch {
+        // Best-effort cleanup
+      }
+    }
+  }
+
+  const parsed = parseCandidateContactFromResume(parsedPdf.text || "");
+
+  return {
+    ...parsed,
+    confidence: {
+      name: parsed.name ? "medium" : "low",
+      email: parsed.email ? "high" : "low",
+      phone: parsed.phone ? "medium" : "low",
+    },
+  };
 };
 
 const serializeCandidate = (candidate) => {

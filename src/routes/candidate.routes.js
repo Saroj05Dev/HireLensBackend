@@ -5,6 +5,7 @@ import auth from '../middlewares/auth.middleware.js';
 import role from '../middlewares/role.middleware.js';
 import { 
   addCandidate, 
+  parseResume,
   getCandidatesByJob, 
   getCandidateProfile, 
   updateCandidateStage,
@@ -36,6 +37,15 @@ const upload = multer({
     }
   },
 });
+
+// Add candidate - Only ADMIN & RECRUITER
+router.post(
+  "/parse-resume",
+  auth,
+  role("ADMIN", "RECRUITER"),
+  upload.single("resume"),
+  parseResume
+);
 
 // Add candidate - Only ADMIN & RECRUITER
 router.post(
