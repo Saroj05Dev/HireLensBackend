@@ -10,81 +10,81 @@ import DecisionLog from "../models/DecisionLog.js";
 
 // Sample data
 const organizationData = {
-  name: "TechCorp Solutions"
+  name: "InfoTech Solutions India"
 };
 
 const usersData = [
   // Admin
-  { name: "Admin User", email: "admin@techcorp.com", password: "admin123", role: "ADMIN" },
+  { name: "Rajesh Kumar", email: "rajesh.kumar@infotech.in", password: "admin123", role: "ADMIN" },
   
   // Recruiters
-  { name: "Sarah Johnson", email: "sarah.johnson@techcorp.com", password: "recruiter123", role: "RECRUITER" },
-  { name: "Michael Chen", email: "michael.chen@techcorp.com", password: "recruiter123", role: "RECRUITER" },
-  { name: "Emily Rodriguez", email: "emily.rodriguez@techcorp.com", password: "recruiter123", role: "RECRUITER" },
+  { name: "Priya Sharma", email: "priya.sharma@infotech.in", password: "recruiter123", role: "RECRUITER" },
+  { name: "Amit Patel", email: "amit.patel@infotech.in", password: "recruiter123", role: "RECRUITER" },
+  { name: "Sneha Gupta", email: "sneha.gupta@infotech.in", password: "recruiter123", role: "RECRUITER" },
   
   // Interviewers
-  { name: "David Kim", email: "david.kim@techcorp.com", password: "interviewer123", role: "INTERVIEWER" },
-  { name: "Jessica Martinez", email: "jessica.martinez@techcorp.com", password: "interviewer123", role: "INTERVIEWER" },
-  { name: "Robert Taylor", email: "robert.taylor@techcorp.com", password: "interviewer123", role: "INTERVIEWER" },
-  { name: "Amanda White", email: "amanda.white@techcorp.com", password: "interviewer123", role: "INTERVIEWER" },
-  { name: "James Anderson", email: "james.anderson@techcorp.com", password: "interviewer123", role: "INTERVIEWER" },
+  { name: "Vikram Singh", email: "vikram.singh@infotech.in", password: "interviewer123", role: "INTERVIEWER" },
+  { name: "Anjali Reddy", email: "anjali.reddy@infotech.in", password: "interviewer123", role: "INTERVIEWER" },
+  { name: "Karthik Iyer", email: "karthik.iyer@infotech.in", password: "interviewer123", role: "INTERVIEWER" },
+  { name: "Deepika Nair", email: "deepika.nair@infotech.in", password: "interviewer123", role: "INTERVIEWER" },
+  { name: "Arjun Mehta", email: "arjun.mehta@infotech.in", password: "interviewer123", role: "INTERVIEWER" },
 ];
 
 const jobsData = [
   {
     title: "Senior Frontend Developer",
-    description: "We are looking for an experienced Frontend Developer to join our team. You will be responsible for building responsive web applications using React and modern JavaScript.",
+    description: "We are looking for an experienced Frontend Developer to join our team in Bangalore. You will be responsible for building responsive web applications using React and modern JavaScript frameworks.",
     skills: ["React", "JavaScript", "TypeScript", "CSS", "HTML"],
     experience: "5+ years",
-    location: "San Francisco, CA",
+    location: "Bangalore, Karnataka",
     status: "OPEN"
   },
   {
     title: "Backend Engineer",
-    description: "Join our backend team to build scalable APIs and microservices. Experience with Node.js and databases required.",
+    description: "Join our backend team in Hyderabad to build scalable APIs and microservices. Experience with Node.js and databases required.",
     skills: ["Node.js", "Express", "MongoDB", "PostgreSQL", "REST APIs"],
     experience: "3-5 years",
-    location: "Remote",
+    location: "Hyderabad, Telangana",
     status: "OPEN"
   },
   {
     title: "Full Stack Developer",
-    description: "Looking for a versatile developer comfortable with both frontend and backend technologies.",
+    description: "Looking for a versatile developer comfortable with both frontend and backend technologies for our Pune office.",
     skills: ["React", "Node.js", "MongoDB", "TypeScript", "AWS"],
     experience: "4+ years",
-    location: "New York, NY",
+    location: "Pune, Maharashtra",
     status: "OPEN"
   },
   {
     title: "DevOps Engineer",
-    description: "Manage our cloud infrastructure and CI/CD pipelines. Experience with AWS and Docker required.",
+    description: "Manage our cloud infrastructure and CI/CD pipelines. Experience with AWS and Docker required. Remote opportunity available.",
     skills: ["AWS", "Docker", "Kubernetes", "Jenkins", "Terraform"],
     experience: "3+ years",
-    location: "Austin, TX",
+    location: "Mumbai, Maharashtra",
     status: "OPEN"
   },
   {
     title: "UI/UX Designer",
-    description: "Create beautiful and intuitive user interfaces. Strong portfolio required.",
+    description: "Create beautiful and intuitive user interfaces for our products. Strong portfolio required.",
     skills: ["Figma", "Adobe XD", "Sketch", "User Research", "Prototyping"],
     experience: "2-4 years",
-    location: "Los Angeles, CA",
+    location: "Gurgaon, Haryana",
     status: "OPEN"
   },
   {
     title: "Data Scientist",
-    description: "Analyze data and build machine learning models to drive business insights.",
+    description: "Analyze data and build machine learning models to drive business insights. Join our analytics team in Bangalore.",
     skills: ["Python", "Machine Learning", "SQL", "TensorFlow", "Data Analysis"],
     experience: "3+ years",
-    location: "Boston, MA",
+    location: "Bangalore, Karnataka",
     status: "OPEN"
   },
   {
     title: "Mobile Developer",
-    description: "Build native mobile applications for iOS and Android platforms.",
+    description: "Build native mobile applications for iOS and Android platforms for our Chennai development center.",
     skills: ["React Native", "Swift", "Kotlin", "Mobile UI", "REST APIs"],
     experience: "3-5 years",
-    location: "Seattle, WA",
+    location: "Chennai, Tamil Nadu",
     status: "OPEN"
   },
   {
@@ -92,7 +92,7 @@ const jobsData = [
     description: "Ensure quality through automated and manual testing. Experience with testing frameworks required.",
     skills: ["Selenium", "Jest", "Cypress", "Test Automation", "QA Processes"],
     experience: "2-4 years",
-    location: "Remote",
+    location: "Noida, Uttar Pradesh",
     status: "OPEN"
   },
   {
@@ -100,55 +100,55 @@ const jobsData = [
     description: "Lead product development from conception to launch. Strong technical background preferred.",
     skills: ["Product Strategy", "Agile", "User Stories", "Roadmapping", "Analytics"],
     experience: "5+ years",
-    location: "San Francisco, CA",
+    location: "Bangalore, Karnataka",
     status: "CLOSED"
   },
   {
     title: "Security Engineer",
-    description: "Protect our systems and data. Experience with security best practices required.",
+    description: "Protect our systems and data. Experience with security best practices required. Remote position.",
     skills: ["Security", "Penetration Testing", "Cryptography", "Network Security", "Compliance"],
     experience: "4+ years",
-    location: "Remote",
+    location: "Delhi NCR",
     status: "OPEN"
   }
 ];
 
 const candidatesData = [
   // Frontend Developer candidates
-  { name: "Alex Thompson", email: "alex.thompson@email.com", phone: "+1-555-0101", currentStage: "APPLIED" },
-  { name: "Maria Garcia", email: "maria.garcia@email.com", phone: "+1-555-0102", currentStage: "SCREENING" },
-  { name: "John Smith", email: "john.smith@email.com", phone: "+1-555-0103", currentStage: "INTERVIEW" },
-  { name: "Lisa Wang", email: "lisa.wang@email.com", phone: "+1-555-0104", currentStage: "OFFER" },
+  { name: "Rahul Verma", email: "rahul.verma@gmail.com", phone: "+91-9876543210", currentStage: "APPLIED" },
+  { name: "Neha Singh", email: "neha.singh@gmail.com", phone: "+91-9876543211", currentStage: "SCREENING" },
+  { name: "Suresh Kumar", email: "suresh.kumar@gmail.com", phone: "+91-9876543212", currentStage: "INTERVIEW" },
+  { name: "Kavya Reddy", email: "kavya.reddy@gmail.com", phone: "+91-9876543213", currentStage: "OFFER" },
   
   // Backend Engineer candidates
-  { name: "Chris Brown", email: "chris.brown@email.com", phone: "+1-555-0105", currentStage: "APPLIED" },
-  { name: "Nina Patel", email: "nina.patel@email.com", phone: "+1-555-0106", currentStage: "SCREENING" },
-  { name: "Tom Wilson", email: "tom.wilson@email.com", phone: "+1-555-0107", currentStage: "INTERVIEW" },
+  { name: "Ravi Shankar", email: "ravi.shankar@gmail.com", phone: "+91-9876543214", currentStage: "APPLIED" },
+  { name: "Pooja Patel", email: "pooja.patel@gmail.com", phone: "+91-9876543215", currentStage: "SCREENING" },
+  { name: "Arun Kumar", email: "arun.kumar@gmail.com", phone: "+91-9876543216", currentStage: "INTERVIEW" },
   
   // Full Stack Developer candidates
-  { name: "Sarah Lee", email: "sarah.lee@email.com", phone: "+1-555-0108", currentStage: "APPLIED" },
-  { name: "Kevin Zhang", email: "kevin.zhang@email.com", phone: "+1-555-0109", currentStage: "SCREENING" },
-  { name: "Emma Davis", email: "emma.davis@email.com", phone: "+1-555-0110", currentStage: "HIRED" },
+  { name: "Meera Nair", email: "meera.nair@gmail.com", phone: "+91-9876543217", currentStage: "APPLIED" },
+  { name: "Sanjay Gupta", email: "sanjay.gupta@gmail.com", phone: "+91-9876543218", currentStage: "SCREENING" },
+  { name: "Divya Iyer", email: "divya.iyer@gmail.com", phone: "+91-9876543219", currentStage: "HIRED" },
   
   // DevOps Engineer candidates
-  { name: "Ryan Miller", email: "ryan.miller@email.com", phone: "+1-555-0111", currentStage: "APPLIED" },
-  { name: "Sophia Martinez", email: "sophia.martinez@email.com", phone: "+1-555-0112", currentStage: "INTERVIEW" },
+  { name: "Manoj Sharma", email: "manoj.sharma@gmail.com", phone: "+91-9876543220", currentStage: "APPLIED" },
+  { name: "Swati Desai", email: "swati.desai@gmail.com", phone: "+91-9876543221", currentStage: "INTERVIEW" },
   
   // UI/UX Designer candidates
-  { name: "Oliver Johnson", email: "oliver.johnson@email.com", phone: "+1-555-0113", currentStage: "APPLIED" },
-  { name: "Ava Williams", email: "ava.williams@email.com", phone: "+1-555-0114", currentStage: "SCREENING" },
+  { name: "Rohan Mehta", email: "rohan.mehta@gmail.com", phone: "+91-9876543222", currentStage: "APPLIED" },
+  { name: "Isha Kapoor", email: "isha.kapoor@gmail.com", phone: "+91-9876543223", currentStage: "SCREENING" },
   
   // Data Scientist candidates
-  { name: "Ethan Brown", email: "ethan.brown@email.com", phone: "+1-555-0115", currentStage: "REJECTED" },
-  { name: "Mia Jones", email: "mia.jones@email.com", phone: "+1-555-0116", currentStage: "APPLIED" },
+  { name: "Varun Malhotra", email: "varun.malhotra@gmail.com", phone: "+91-9876543224", currentStage: "REJECTED" },
+  { name: "Shalini Rao", email: "shalini.rao@gmail.com", phone: "+91-9876543225", currentStage: "APPLIED" },
   
   // Mobile Developer candidates
-  { name: "Noah Garcia", email: "noah.garcia@email.com", phone: "+1-555-0117", currentStage: "SCREENING" },
-  { name: "Isabella Rodriguez", email: "isabella.rodriguez@email.com", phone: "+1-555-0118", currentStage: "INTERVIEW" },
+  { name: "Nikhil Joshi", email: "nikhil.joshi@gmail.com", phone: "+91-9876543226", currentStage: "SCREENING" },
+  { name: "Ananya Krishnan", email: "ananya.krishnan@gmail.com", phone: "+91-9876543227", currentStage: "INTERVIEW" },
   
   // QA Engineer candidates
-  { name: "Liam Martinez", email: "liam.martinez@email.com", phone: "+1-555-0119", currentStage: "APPLIED" },
-  { name: "Charlotte Anderson", email: "charlotte.anderson@email.com", phone: "+1-555-0120", currentStage: "OFFER" },
+  { name: "Akash Agarwal", email: "akash.agarwal@gmail.com", phone: "+91-9876543228", currentStage: "APPLIED" },
+  { name: "Priyanka Chopra", email: "priyanka.chopra@gmail.com", phone: "+91-9876543229", currentStage: "OFFER" },
 ];
 
 // Helper function to get random element from array
@@ -171,10 +171,10 @@ const getRandomFutureDate = (daysAhead) => {
 
 export const seedDatabase = async () => {
   try {
-    console.log("🌱 Starting database seeding...");
+    console.log("Starting database seeding...");
 
     // Clear existing data
-    console.log("🗑️  Clearing existing data...");
+    console.log("Clearing existing data...");
     await Promise.all([
       DecisionLog.deleteMany({}),
       InterviewFeedback.deleteMany({}),
@@ -184,15 +184,15 @@ export const seedDatabase = async () => {
       User.deleteMany({}),
       Organization.deleteMany({})
     ]);
-    console.log("✅ Existing data cleared");
+    console.log("Existing data cleared");
 
     // Create Organization
-    console.log("🏢 Creating organization...");
+    console.log("Creating organization...");
     const organization = await Organization.create(organizationData);
-    console.log(`✅ Organization created: ${organization.name}`);
+    console.log(`Organization created: ${organization.name}`);
 
     // Create Users
-    console.log("👥 Creating users...");
+    console.log("Creating users...");
     const hashedPassword = await bcrypt.hash("password123", 10);
     const users = await Promise.all(
       usersData.map(async (userData) => {
@@ -205,7 +205,7 @@ export const seedDatabase = async () => {
         });
       })
     );
-    console.log(`✅ ${users.length} users created`);
+    console.log(`${users.length} users created`);
 
     // Set organization owner
     organization.ownerId = users[0]._id; // Admin as owner
@@ -217,7 +217,7 @@ export const seedDatabase = async () => {
     const interviewers = users.filter(u => u.role === "INTERVIEWER");
 
     // Create Jobs
-    console.log("💼 Creating jobs...");
+    console.log("Creating jobs...");
     const jobs = await Promise.all(
       jobsData.map((jobData) =>
         Job.create({
@@ -227,10 +227,10 @@ export const seedDatabase = async () => {
         })
       )
     );
-    console.log(`✅ ${jobs.length} jobs created`);
+    console.log(`${jobs.length} jobs created`);
 
     // Create Candidates (distribute across jobs)
-    console.log("👤 Creating candidates...");
+    console.log("Creating candidates...");
     const candidates = [];
     let candidateIndex = 0;
     
@@ -250,10 +250,10 @@ export const seedDatabase = async () => {
         candidateIndex++;
       }
     }
-    console.log(`✅ ${candidates.length} candidates created`);
+    console.log(`${candidates.length} candidates created`);
 
     // Create Interviews (for candidates in INTERVIEW stage or beyond)
-    console.log("📅 Creating interviews...");
+    console.log("Creating interviews...");
     const interviewCandidates = candidates.filter(c => 
       ["INTERVIEW", "OFFER", "HIRED"].includes(c.currentStage)
     );
@@ -272,10 +272,10 @@ export const seedDatabase = async () => {
         })
       )
     );
-    console.log(`✅ ${interviews.length} interviews created`);
+    console.log(`${interviews.length} interviews created`);
 
     // Create Interview Feedback (for completed interviews)
-    console.log("📝 Creating interview feedback...");
+    console.log("Creating interview feedback...");
     const completedInterviews = interviews.filter(i => i.status === "COMPLETED");
     
     const feedbacks = await Promise.all(
@@ -295,10 +295,10 @@ export const seedDatabase = async () => {
         });
       })
     );
-    console.log(`✅ ${feedbacks.length} interview feedbacks created`);
+    console.log(`${feedbacks.length} interview feedbacks created`);
 
     // Create Decision Logs with realistic timestamps
-    console.log("📋 Creating decision logs...");
+    console.log("Creating decision logs...");
     const decisionLogs = [];
     
     // Stage change logs with progressive timestamps
@@ -370,11 +370,11 @@ export const seedDatabase = async () => {
     }
     
     await DecisionLog.insertMany(decisionLogs);
-    console.log(`✅ ${decisionLogs.length} decision logs created`);
+    console.log(`${decisionLogs.length} decision logs created`);
 
     // Summary
-    console.log("\n🎉 Database seeding completed successfully!");
-    console.log("\n📊 Summary:");
+    console.log("\nDatabase seeding completed successfully!");
+    console.log("\nSummary:");
     console.log(`   Organizations: 1`);
     console.log(`   Users: ${users.length} (1 Admin, ${recruiters.length} Recruiters, ${interviewers.length} Interviewers)`);
     console.log(`   Jobs: ${jobs.length}`);
@@ -383,13 +383,13 @@ export const seedDatabase = async () => {
     console.log(`   Feedbacks: ${feedbacks.length}`);
     console.log(`   Decision Logs: ${decisionLogs.length}`);
     
-    console.log("\n🔑 Login Credentials:");
-    console.log("   Admin: admin@techcorp.com / admin123");
-    console.log("   Recruiter: sarah.johnson@techcorp.com / recruiter123");
-    console.log("   Interviewer: david.kim@techcorp.com / interviewer123");
+    console.log("\nLogin Credentials:");
+    console.log("   Admin: rajesh.kumar@infotech.in / admin123");
+    console.log("   Recruiter: priya.sharma@infotech.in / recruiter123");
+    console.log("   Interviewer: vikram.singh@infotech.in / interviewer123");
 
   } catch (error) {
-    console.error("❌ Error seeding database:", error);
+    console.error("Error seeding database:", error);
     throw error;
   }
 };

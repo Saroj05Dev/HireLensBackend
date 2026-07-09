@@ -42,7 +42,7 @@ const wrap = (headerBg, headerContent, bodyContent) => `
                 <tr>
                   <td style="text-align:center;">
                     <div style="background:#ffffff;width:56px;height:56px;border-radius:12px;margin:0 auto 16px;display:inline-flex;align-items:center;justify-content:center;">
-                      <span style="font-size:28px;">💼</span>
+                      <span style="font-size:28px;font-weight:bold;color:#0ea5e9;">HL</span>
                     </div>
                     ${headerContent}
                   </td>
@@ -132,8 +132,8 @@ const buildInviteHtml = ({ email, role, organizationName, inviteUrl, expiresAt }
       <tr>
         <td>
           <p style="margin:0 0 8px;font-size:13px;color:#6b7280;"><strong>Invitation Details:</strong></p>
-          <p style="margin:0 0 4px;font-size:13px;color:#6b7280;">📧 Sent to: <strong>${email}</strong></p>
-          <p style="margin:0 0 4px;font-size:13px;color:#6b7280;">⏰ Expires: <strong>${expiry}</strong></p>
+          <p style="margin:0 0 4px;font-size:13px;color:#6b7280;">Sent to: <strong>${email}</strong></p>
+          <p style="margin:0 0 4px;font-size:13px;color:#6b7280;">Expires: <strong>${expiry}</strong></p>
           <p style="margin:16px 0 0;font-size:12px;color:#9ca3af;line-height:1.5;">If you weren't expecting this invitation, you can safely ignore this email.</p>
         </td>
       </tr>
@@ -189,7 +189,7 @@ const buildInterviewScheduledHtml = ({ interviewerName, candidateName, jobTitle,
               <td style="padding:8px 0;border-bottom:1px solid #bae6fd;">
                 <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
                   <tr>
-                    <td style="color:#0c4a6e;font-size:13px;font-weight:600;width:100px;">👤 Candidate</td>
+                    <td style="color:#0c4a6e;font-size:13px;font-weight:600;width:100px;">Candidate:</td>
                     <td style="color:#0c4a6e;font-size:15px;font-weight:700;">${candidateName}</td>
                   </tr>
                 </table>
@@ -199,7 +199,7 @@ const buildInterviewScheduledHtml = ({ interviewerName, candidateName, jobTitle,
               <td style="padding:8px 0;border-bottom:1px solid #bae6fd;">
                 <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
                   <tr>
-                    <td style="color:#0c4a6e;font-size:13px;font-weight:600;width:100px;">💼 Position</td>
+                    <td style="color:#0c4a6e;font-size:13px;font-weight:600;width:100px;">Position:</td>
                     <td style="color:#0c4a6e;font-size:15px;font-weight:700;">${jobTitle}</td>
                   </tr>
                 </table>
@@ -209,7 +209,7 @@ const buildInterviewScheduledHtml = ({ interviewerName, candidateName, jobTitle,
               <td style="padding:8px 0;border-bottom:1px solid #bae6fd;">
                 <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
                   <tr>
-                    <td style="color:#0c4a6e;font-size:13px;font-weight:600;width:100px;">📅 Date</td>
+                    <td style="color:#0c4a6e;font-size:13px;font-weight:600;width:100px;">Date:</td>
                     <td style="color:#0c4a6e;font-size:15px;font-weight:700;">${dateStr}</td>
                   </tr>
                 </table>
@@ -234,7 +234,7 @@ const buildInterviewScheduledHtml = ({ interviewerName, candidateName, jobTitle,
     <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin:0 0 28px;background:#f9fafb;border-radius:10px;border:1px solid #e5e7eb;">
       <tr>
         <td style="padding:20px;">
-          <p style="margin:0 0 12px;font-size:14px;color:#111827;font-weight:600;">📋 Next Steps:</p>
+          <p style="margin:0 0 12px;font-size:14px;color:#111827;font-weight:600;">Next Steps:</p>
           <ul style="margin:0;padding-left:20px;color:#374151;font-size:14px;line-height:1.8;">
             <li>Review the candidate's profile and resume on HireLens</li>
             <li>Prepare interview questions based on the job requirements</li>
@@ -261,12 +261,12 @@ const buildInterviewScheduledHtml = ({ interviewerName, candidateName, jobTitle,
 
 // ─── 3. Candidate Stage Change Email ─────────────────────────────────────────
 const STAGE_LABELS = {
-  APPLIED:    { label: "Applied",    emoji: "📝", bg: "#f3f4f6", color: "#374151" },
-  SCREENING:  { label: "Screening",  emoji: "🔍", bg: "#fef3c7", color: "#92400e" },
-  INTERVIEW:  { label: "Interview",  emoji: "💬", bg: "#dbeafe", color: "#1e40af" },
-  OFFER:      { label: "Offer",      emoji: "🎁", bg: "#d1fae5", color: "#065f46" },
-  HIRED:      { label: "Hired",      emoji: "🎉", bg: "#d1fae5", color: "#065f46" },
-  REJECTED:   { label: "Not Selected", emoji: "📋", bg: "#fee2e2", color: "#991b1b" },
+  APPLIED:    { label: "Applied",    bg: "#f3f4f6", color: "#374151" },
+  SCREENING:  { label: "Screening",  bg: "#fef3c7", color: "#92400e" },
+  INTERVIEW:  { label: "Interview",  bg: "#dbeafe", color: "#1e40af" },
+  OFFER:      { label: "Offer",      bg: "#d1fae5", color: "#065f46" },
+  HIRED:      { label: "Hired",      bg: "#d1fae5", color: "#065f46" },
+  REJECTED:   { label: "Not Selected", bg: "#fee2e2", color: "#991b1b" },
 };
 
 const buildStageChangeHtml = ({ candidateName, jobTitle, fromStage, toStage, organizationName, note }) => {
@@ -363,9 +363,9 @@ const buildStageChangeHtml = ({ candidateName, jobTitle, fromStage, toStage, org
       <tr>
         <td>
           <p style="margin:0 0 8px;font-size:13px;color:#6b7280;font-weight:600;">Application Details:</p>
-          <p style="margin:0 0 4px;font-size:13px;color:#6b7280;">💼 Position: <strong>${jobTitle}</strong></p>
-          <p style="margin:0 0 4px;font-size:13px;color:#6b7280;">🏢 Company: <strong>${organizationName}</strong></p>
-          <p style="margin:0;font-size:13px;color:#6b7280;">📅 Updated: <strong>${new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })}</strong></p>
+          <p style="margin:0 0 4px;font-size:13px;color:#6b7280;">Position: <strong>${jobTitle}</strong></p>
+          <p style="margin:0 0 4px;font-size:13px;color:#6b7280;">Company: <strong>${organizationName}</strong></p>
+          <p style="margin:0;font-size:13px;color:#6b7280;">Updated: <strong>${new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })}</strong></p>
         </td>
       </tr>
     </table>
@@ -374,7 +374,7 @@ const buildStageChangeHtml = ({ candidateName, jobTitle, fromStage, toStage, org
     <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin:0 0 20px;">
       <tr>
         <td style="text-align:center;">
-          <p style="margin:0;font-size:32px;">🎊 🎉 🎊</p>
+          <p style="margin:0;font-size:32px;font-weight:bold;color:#0ea5e9;">* * *</p>
         </td>
       </tr>
     </table>
@@ -439,8 +439,8 @@ const buildOTPHtml = ({ email, otp, purpose = "SIGNUP" }) => {
       <tr>
         <td>
           <p style="margin:0 0 8px;font-size:13px;color:#6b7280;"><strong>${isPasswordReset ? 'Reset' : 'Verification'} Details:</strong></p>
-          <p style="margin:0 0 4px;font-size:13px;color:#6b7280;">📧 Email: <strong>${email}</strong></p>
-          <p style="margin:0 0 4px;font-size:13px;color:#6b7280;">📅 Requested: <strong>${new Date().toLocaleString("en-US", { dateStyle: "medium", timeStyle: "short" })}</strong></p>
+          <p style="margin:0 0 4px;font-size:13px;color:#6b7280;">Email: <strong>${email}</strong></p>
+          <p style="margin:0 0 4px;font-size:13px;color:#6b7280;">Requested: <strong>${new Date().toLocaleString("en-US", { dateStyle: "medium", timeStyle: "short" })}</strong></p>
           ${isPasswordReset 
             ? '<p style="margin:16px 0 0;font-size:12px;color:#9ca3af;line-height:1.5;">If you didn\'t request this code, your account is still secure. You can safely ignore this email.</p>' 
             : '<p style="margin:16px 0 0;font-size:12px;color:#9ca3af;line-height:1.5;">If you didn\'t request this code, please ignore this email or contact support if you have concerns.</p>'}

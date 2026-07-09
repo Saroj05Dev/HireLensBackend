@@ -15,11 +15,11 @@ const MONGODB_URI = process.env.MONGO_URL || process.env.MONGODB_URI || "mongodb
 
 const cleanDatabase = async () => {
   try {
-    console.log("🔌 Connecting to MongoDB...");
+    console.log("Connecting to MongoDB...");
     await mongoose.connect(MONGODB_URI);
-    console.log("✅ Connected to MongoDB");
+    console.log("Connected to MongoDB");
 
-    console.log("\n🗑️  Cleaning database...");
+    console.log("\nCleaning database...");
     
     const results = await Promise.all([
       DecisionLog.deleteMany({}),
@@ -31,7 +31,7 @@ const cleanDatabase = async () => {
       Organization.deleteMany({})
     ]);
 
-    console.log("\n📊 Deletion Summary:");
+    console.log("\nDeletion Summary:");
     console.log(`   Decision Logs: ${results[0].deletedCount}`);
     console.log(`   Interview Feedbacks: ${results[1].deletedCount}`);
     console.log(`   Interviews: ${results[2].deletedCount}`);
@@ -40,13 +40,13 @@ const cleanDatabase = async () => {
     console.log(`   Users: ${results[5].deletedCount}`);
     console.log(`   Organizations: ${results[6].deletedCount}`);
 
-    console.log("\n✅ Database cleaned successfully!");
+    console.log("\nDatabase cleaned successfully!");
     
     await mongoose.connection.close();
-    console.log("👋 Connection closed");
+    console.log("Connection closed");
     process.exit(0);
   } catch (error) {
-    console.error("❌ Error cleaning database:", error);
+    console.error("Error cleaning database:", error);
     await mongoose.connection.close();
     process.exit(1);
   }

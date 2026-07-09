@@ -12,7 +12,7 @@ npm run seed
 ```
 
 **What it creates:**
-- 1 Organization (TechCorp Solutions)
+- 1 Organization (InfoTech Solutions India)
 - 9 Users:
   - 1 Admin
   - 3 Recruiters
@@ -46,43 +46,43 @@ This is equivalent to running `npm run clean` followed by `npm run seed`.
 After seeding, you can log in with these credentials:
 
 ### Admin
-- **Email:** admin@techcorp.com
+- **Email:** rajesh.kumar@infotech.in
 - **Password:** admin123
 
 ### Recruiter
-- **Email:** sarah.johnson@techcorp.com
+- **Email:** priya.sharma@infotech.in
 - **Password:** recruiter123
 
 Other recruiters:
-- michael.chen@techcorp.com / recruiter123
-- emily.rodriguez@techcorp.com / recruiter123
+- amit.patel@infotech.in / recruiter123
+- sneha.gupta@infotech.in / recruiter123
 
 ### Interviewer
-- **Email:** david.kim@techcorp.com
+- **Email:** vikram.singh@infotech.in
 - **Password:** interviewer123
 
 Other interviewers:
-- jessica.martinez@techcorp.com / interviewer123
-- robert.taylor@techcorp.com / interviewer123
-- amanda.white@techcorp.com / interviewer123
-- james.anderson@techcorp.com / interviewer123
+- anjali.reddy@infotech.in / interviewer123
+- karthik.iyer@infotech.in / interviewer123
+- deepika.nair@infotech.in / interviewer123
+- arjun.mehta@infotech.in / interviewer123
 
 ## Data Overview
 
 ### Organizations
-- **TechCorp Solutions** - Main organization with all users and jobs
+- **InfoTech Solutions India** - Main organization with all users and jobs
 
 ### Jobs (10 total)
-1. Senior Frontend Developer (OPEN)
-2. Backend Engineer (OPEN)
-3. Full Stack Developer (OPEN)
-4. DevOps Engineer (OPEN)
-5. UI/UX Designer (OPEN)
-6. Data Scientist (OPEN)
-7. Mobile Developer (OPEN)
-8. QA Engineer (OPEN)
-9. Product Manager (CLOSED)
-10. Security Engineer (OPEN)
+1. Senior Frontend Developer - Bangalore, Karnataka (OPEN)
+2. Backend Engineer - Hyderabad, Telangana (OPEN)
+3. Full Stack Developer - Pune, Maharashtra (OPEN)
+4. DevOps Engineer - Mumbai, Maharashtra (OPEN)
+5. UI/UX Designer - Gurgaon, Haryana (OPEN)
+6. Data Scientist - Bangalore, Karnataka (OPEN)
+7. Mobile Developer - Chennai, Tamil Nadu (OPEN)
+8. QA Engineer - Noida, Uttar Pradesh (OPEN)
+9. Product Manager - Bangalore, Karnataka (CLOSED)
+10. Security Engineer - Delhi NCR (OPEN)
 
 ### Candidates (20 total)
 Candidates are distributed across different jobs and stages:
@@ -150,6 +150,6 @@ npm run reset
 3. Seed database: `npm run seed`
 
 ### Production Warning
-⚠️ **Never run these scripts in production!** They will delete all data.
+**Never run these scripts in production!** They will delete all data.
 
 These scripts are for development and testing only.

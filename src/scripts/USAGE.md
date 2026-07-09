@@ -10,9 +10,9 @@ npm run reset
 ```
 
 This will:
-1. ✅ Clear any existing data
-2. ✅ Create fresh sample data
-3. ✅ Display login credentials
+1. Clear any existing data
+2. Create fresh sample data
+3. Display login credentials
 
 ### 2. Start Your Backend
 
@@ -26,19 +26,19 @@ Open your frontend application and login with:
 
 **Admin Access:**
 ```
-Email: admin@techcorp.com
+Email: rajesh.kumar@infotech.in
 Password: admin123
 ```
 
 **Recruiter Access:**
 ```
-Email: sarah.johnson@techcorp.com
+Email: priya.sharma@infotech.in
 Password: recruiter123
 ```
 
 **Interviewer Access:**
 ```
-Email: david.kim@techcorp.com
+Email: vikram.singh@infotech.in
 Password: interviewer123
 ```
 
@@ -65,21 +65,21 @@ Removes all data from database.
 ### Scenario 4: Testing Specific Features
 
 **Testing Recruiter Features:**
-1. Login as: sarah.johnson@techcorp.com / recruiter123
+1. Login as: priya.sharma@infotech.in / recruiter123
 2. Navigate to Jobs page
 3. Open any job to see pipeline
 4. Drag and drop candidates between stages
 5. Assign interviews to interviewers
 
 **Testing Interviewer Features:**
-1. Login as: david.kim@techcorp.com / interviewer123
+1. Login as: vikram.singh@infotech.in / interviewer123
 2. Navigate to Interviews page
 3. See assigned interviews
 4. Submit feedback for pending interviews
 5. View completed feedback
 
 **Testing Admin Features:**
-1. Login as: admin@techcorp.com / admin123
+1. Login as: rajesh.kumar@infotech.in / admin123
 2. View Dashboard analytics
 3. Access Analytics page
 4. View jobs (read-only)
@@ -87,32 +87,32 @@ Removes all data from database.
 ## Data Structure After Seeding
 
 ```
-Organization: TechCorp Solutions
+Organization: InfoTech Solutions India
 ├── Users (9)
 │   ├── Admin (1)
-│   │   └── admin@techcorp.com
+│   │   └── rajesh.kumar@infotech.in
 │   ├── Recruiters (3)
-│   │   ├── sarah.johnson@techcorp.com
-│   │   ├── michael.chen@techcorp.com
-│   │   └── emily.rodriguez@techcorp.com
+│   │   ├── priya.sharma@infotech.in
+│   │   ├── amit.patel@infotech.in
+│   │   └── sneha.gupta@infotech.in
 │   └── Interviewers (5)
-│       ├── david.kim@techcorp.com
-│       ├── jessica.martinez@techcorp.com
-│       ├── robert.taylor@techcorp.com
-│       ├── amanda.white@techcorp.com
-│       └── james.anderson@techcorp.com
+│       ├── vikram.singh@infotech.in
+│       ├── anjali.reddy@infotech.in
+│       ├── karthik.iyer@infotech.in
+│       ├── deepika.nair@infotech.in
+│       └── arjun.mehta@infotech.in
 │
 ├── Jobs (10)
-│   ├── Senior Frontend Developer (OPEN) - 4 candidates
-│   ├── Backend Engineer (OPEN) - 3 candidates
-│   ├── Full Stack Developer (OPEN) - 3 candidates
-│   ├── DevOps Engineer (OPEN) - 2 candidates
-│   ├── UI/UX Designer (OPEN) - 2 candidates
-│   ├── Data Scientist (OPEN) - 2 candidates
-│   ├── Mobile Developer (OPEN) - 2 candidates
-│   ├── QA Engineer (OPEN) - 2 candidates
-│   ├── Product Manager (CLOSED) - 0 candidates
-│   └── Security Engineer (OPEN) - 0 candidates
+│   ├── Senior Frontend Developer - Bangalore, Karnataka (OPEN) - 4 candidates
+│   ├── Backend Engineer - Hyderabad, Telangana (OPEN) - 3 candidates
+│   ├── Full Stack Developer - Pune, Maharashtra (OPEN) - 3 candidates
+│   ├── DevOps Engineer - Mumbai, Maharashtra (OPEN) - 2 candidates
+│   ├── UI/UX Designer - Gurgaon, Haryana (OPEN) - 2 candidates
+│   ├── Data Scientist - Bangalore, Karnataka (OPEN) - 2 candidates
+│   ├── Mobile Developer - Chennai, Tamil Nadu (OPEN) - 2 candidates
+│   ├── QA Engineer - Noida, Uttar Pradesh (OPEN) - 2 candidates
+│   ├── Product Manager - Bangalore, Karnataka (CLOSED) - 0 candidates
+│   └── Security Engineer - Delhi NCR (OPEN) - 0 candidates
 │
 ├── Candidates (20)
 │   ├── APPLIED (7)

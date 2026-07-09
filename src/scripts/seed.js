@@ -9,18 +9,18 @@ const MONGODB_URI = process.env.MONGO_URL || process.env.MONGODB_URI || "mongodb
 
 const runSeed = async () => {
   try {
-    console.log("🔌 Connecting to MongoDB...");
+    console.log("Connecting to MongoDB...");
     await mongoose.connect(MONGODB_URI);
-    console.log("✅ Connected to MongoDB");
+    console.log("Connected to MongoDB");
 
     await seedDatabase();
 
-    console.log("\n✨ All done! Closing connection...");
+    console.log("\nAll done! Closing connection...");
     await mongoose.connection.close();
-    console.log("👋 Connection closed");
+    console.log("Connection closed");
     process.exit(0);
   } catch (error) {
-    console.error("💥 Fatal error:", error);
+    console.error("Fatal error:", error);
     await mongoose.connection.close();
     process.exit(1);
   }
