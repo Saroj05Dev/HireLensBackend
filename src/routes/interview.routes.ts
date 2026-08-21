@@ -1,0 +1,71 @@
+import { Router } from "express";
+import auth from "../middlewares/auth.middleware.js";
+import role from "../middlewares/role.middleware.js";
+import {
+  assignInterviewer,
+  submitFeedback,
+  getMyInterviews,
+  getInterviewsByJob,
+  getInterviewFeedback,
+  getAllInterviews,
+  getInterviewers,
+} from "../controllers/interview.controller.js";
+
+const router = Router();
+
+// Get all interviewers in organization (Recruiter)
+router.get(
+  "/interviewers",
+  auth,
+  role("RECRUITER"),
+  getInterviewers
+);
+
+// Get all interviews in the org (Admin/Recruiter)
+router.get(
+  "/",
+  auth,
+  role("ADMIN", "RECRUITER"),
+  getAllInterviews
+);
+
+// Get my assigned interviews (Interviewer)
+router.get(
+  "/my",
+  auth,
+  role("INTERVIEWER"),
+  getMyInterviews
+);
+
+// Get interviews for a specific job (Recruiter)
+router.get(
+  "/job/:jobId",
+  auth,
+  role("RECRUITER"),
+  getInterviewsByJob
+);
+
+// Get feedback for an interview
+router.get(
+  "/:interviewId/feedback",
+  auth,
+  getInterviewFeedback
+);
+
+// Assign interviewer (Recruiter)
+router.post(
+  "/assign",
+  auth,
+  role("RECRUITER"),
+  assignInterviewer
+);
+
+// Submit feedback (Interviewer)
+router.post(
+  "/:interviewId/feedback",
+  auth,
+  role("INTERVIEWER"),
+  submitFeedback
+);
+
+export default router;
