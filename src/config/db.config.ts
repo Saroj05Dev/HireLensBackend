@@ -1,21 +1,21 @@
-import mongoose from "mongoose";
+import { prisma } from "./prisma.js";
 import { SERVER_CONFIG } from "./server.config.js";
 
 const connectDB = async (retries: number = 5, delay: number = 5000): Promise<void> => {
   for (let i = 0; i < retries; i++) {
     try {
-      await mongoose.connect(SERVER_CONFIG.MONGO_URL);
-      console.log("MongoDB connected successfully");
+      await prisma.$connect();
+      console.log("Prisma connected successfully");
       return;
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
-      console.error(`MongoDB connection attempt ${i + 1} failed:`, errorMessage);
+      console.error(`Prisma connection attempt ${i + 1} failed:`, errorMessage);
 
       if (i < retries - 1) {
         console.log(`Retrying in ${delay / 1000} seconds...`);
         await new Promise(resolve => setTimeout(resolve, delay));
       } else {
-        console.error("MongoDB connection failed after all retries");
+        console.error("Prisma connection failed after all retries");
         process.exit(1);
       }
     }
