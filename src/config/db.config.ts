@@ -5,7 +5,7 @@ const connectDB = async (retries: number = 5, delay: number = 5000): Promise<voi
   for (let i = 0; i < retries; i++) {
     try {
       await prisma.$connect();
-      console.log("Prisma connected successfully");
+      console.log("PostgreSQL connected successfully via Prisma");
       return;
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);

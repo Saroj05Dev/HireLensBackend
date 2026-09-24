@@ -1,8 +1,5 @@
-import mongoose from "mongoose";
-import Job from "../models/Job.js";
-import Candidate from "../models/Candidate.js";
-import Interview from "../models/Interview.js";
-import DecisionLog from "../models/DecisionLog.js";
+import { CandidateStage, JobStatus, InterviewStatus } from "@prisma/client";
+import { prisma } from "../config/prisma.js";
 
 export interface DashboardStats {
   totalJobs: number;
@@ -13,13 +10,23 @@ export interface DashboardStats {
   pendingInterviews: number;
 }
 
+export interface StageCount {
+  stage: CandidateStage;
+  count: number;
+}
+
 /**
  * Get dashboard statistics for an organization
  */
 export const getDashboardStats = async (
-  organizationId: string | mongoose.Types.ObjectId
+  organizationId: string
 ): Promise<DashboardStats> => {
-  const orgId = typeof organizationId === "string" ? new mongoose.Types.ObjectId(organizationId) : organizationId;
+  const activeStages: CandidateStage[] = [
+    CandidateStage.APPLIED,
+    CandidateStage.SCREENING,
+    CandidateStage.INTERVIEW,
+    CandidateStage.OFFER,
+  ];
 
   const [
     totalJobs,
@@ -29,15 +36,27 @@ export const getDashboardStats = async (
     totalInterviews,
     pendingInterviews,
   ] = await Promise.all([
-    Job.countDocuments({ organizationId: orgId }),
-    Job.countDocuments({ organizationId: orgId, status: "OPEN" }),
-    Candidate.countDocuments({ organizationId: orgId }),
-    Candidate.countDocuments({
-      organizationId: orgId,
-      currentStage: { $in: ["APPLIED", "SCREENING", "INTERVIEW", "OFFER"] },
+    prisma.job.count({
+      where: { organizationId },
     }),
-    Interview.countDocuments({ organizationId: orgId }),
-    Interview.countDocuments({ organizationId: orgId, status: "ASSIGNED" }),
+    prisma.job.count({
+      where: { organizationId, status: JobStatus.OPEN },
+    }),
+    prisma.candidate.count({
+      where: { organizationId },
+    }),
+    prisma.candidate.count({
+      where: {
+        organizationId,
+        currentStage: { in: activeStages },
+      },
+    }),
+    prisma.interview.count({
+      where: { organizationId },
+    }),
+    prisma.interview.count({
+      where: { organizationId, status: InterviewStatus.ASSIGNED },
+    }),
   ]);
 
   return {
@@ -54,30 +73,57 @@ export const getDashboardStats = async (
  * Get recent decision logs (activity feed)
  */
 export const getRecentActivity = async (
-  organizationId: string | mongoose.Types.ObjectId,
+  organizationId: string,
   limit: number = 10
 ) => {
-  const orgId = typeof organizationId === "string" ? new mongoose.Types.ObjectId(organizationId) : organizationId;
-
-  return DecisionLog.find({ organizationId: orgId })
-    .populate("performedBy", "name email")
-    .populate("candidateId", "name email")
-    .populate("jobId", "title")
-    .sort({ createdAt: -1 })
-    .limit(limit);
+  return prisma.decisionLog.findMany({
+    where: { organizationId },
+    include: {
+      performedBy: {
+        select: {
+          id: true,
+          name: true,
+          email: true,
+        },
+      },
+      candidate: {
+        select: {
+          id: true,
+          name: true,
+          email: true,
+        },
+      },
+      job: {
+        select: {
+          id: true,
+          title: true,
+        },
+      },
+    },
+    orderBy: { createdAt: "desc" },
+    take: limit,
+  });
 };
 
 /**
  * Get candidates by stage breakdown
  */
 export const getCandidatesByStage = async (
-  organizationId: string | mongoose.Types.ObjectId
-) => {
-  const orgId = typeof organizationId === "string" ? new mongoose.Types.ObjectId(organizationId) : organizationId;
+  organizationId: string
+): Promise<StageCount[]> => {
+  const stageGroups = await prisma.candidate.groupBy({
+    by: ["currentStage"],
+    where: { organizationId },
+    _count: {
+      _all: true,
+    },
+    orderBy: {
+      currentStage: "asc",
+    },
+  });
 
-  return Candidate.aggregate([
-    { $match: { organizationId: orgId } },
-    { $group: { _id: "$currentStage", count: { $sum: 1 } } },
-    { $sort: { _id: 1 } },
-  ]);
+  return stageGroups.map((group) => ({
+    stage: group.currentStage,
+    count: group._count._all,
+  }));
 };

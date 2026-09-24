@@ -1,48 +1,60 @@
-import { ClientSession, Types } from "mongoose";
-import DecisionLog, { IDecisionLog, IDecisionLogDocument } from "../models/DecisionLog.js";
+import { DecisionLog, ActionType, Prisma } from "@prisma/client";
+import { prisma } from "../config/prisma.js";
 
 export const create = async (
-  data: Partial<IDecisionLog>,
-  session?: ClientSession
-): Promise<IDecisionLogDocument> => {
-  const log = new DecisionLog(data);
-  await log.save({ session });
-  return log;
+  data: Prisma.DecisionLogUncheckedCreateInput,
+  tx?: Prisma.TransactionClient
+): Promise<DecisionLog> => {
+  const db = tx || prisma;
+  return db.decisionLog.create({
+    data,
+  });
 };
 
-export const findByCandidateId = async (
-  candidateId: string | Types.ObjectId
-): Promise<IDecisionLogDocument[]> => {
-  return DecisionLog.find({ candidateId })
-    .populate("performedBy", "name")
-    .sort({ createdAt: -1 });
+export const findByCandidateId = async (candidateId: string) => {
+  return prisma.decisionLog.findMany({
+    where: { candidateId },
+    include: {
+      performedBy: {
+        select: {
+          name: true,
+        },
+      },
+    },
+    orderBy: { createdAt: "desc" },
+  });
 };
 
 /**
  * Candidate stage history
  */
 export const findStageChangesByCandidate = async (
-  candidateId: string | Types.ObjectId,
-  organizationId: string | Types.ObjectId
-): Promise<IDecisionLogDocument[]> => {
-  return DecisionLog.find({
-    candidateId,
-    organizationId,
-    actionType: "STAGE_CHANGE",
-  }).sort({ createdAt: 1 });
+  candidateId: string,
+  organizationId: string
+): Promise<DecisionLog[]> => {
+  return prisma.decisionLog.findMany({
+    where: {
+      candidateId,
+      organizationId,
+      actionType: ActionType.STAGE_CHANGE,
+    },
+    orderBy: { createdAt: "asc" },
+  });
 };
 
 /**
  * Job funnel stage changes
  */
 export const findStageChangesByJob = async (
-  jobId: string | Types.ObjectId,
-  organizationId: string | Types.ObjectId
-): Promise<IDecisionLogDocument[]> => {
-  return DecisionLog.find({
-    jobId,
-    organizationId,
-    actionType: "STAGE_CHANGE",
+  jobId: string,
+  organizationId: string
+): Promise<DecisionLog[]> => {
+  return prisma.decisionLog.findMany({
+    where: {
+      jobId,
+      organizationId,
+      actionType: ActionType.STAGE_CHANGE,
+    },
   });
 };
 
@@ -50,29 +62,38 @@ export const findStageChangesByJob = async (
  * Latest stage per candidate (org-wide)
  */
 export const findLatestStagePerCandidate = async (
-  organizationId: string | Types.ObjectId
-) => {
-  const orgId = typeof organizationId === "string" ? new Types.ObjectId(organizationId) : organizationId;
-  return DecisionLog.aggregate([
-    { $match: { organizationId: orgId, actionType: "STAGE_CHANGE" } },
-    { $sort: { createdAt: -1 } },
-    {
-      $group: {
-        _id: "$candidateId",
-        toStage: { $first: "$toStage" },
-      },
+  organizationId: string
+): Promise<{ candidateId: string; toStage: string | null }[]> => {
+  const latestLogs = await prisma.decisionLog.findMany({
+    where: {
+      organizationId,
+      actionType: ActionType.STAGE_CHANGE,
     },
-  ]);
+    distinct: ["candidateId"],
+    orderBy: [{ candidateId: "asc" }, { createdAt: "desc" }],
+    select: {
+      candidateId: true,
+      toStage: true,
+    },
+  });
+
+  return latestLogs.map((log) => ({
+    candidateId: log.candidateId,
+    toStage: log.toStage,
+  }));
 };
 
 /**
  * Organization-wide stage changes
  */
 export const findStageChangesByOrganization = async (
-  organizationId: string | Types.ObjectId
-): Promise<IDecisionLogDocument[]> => {
-  return DecisionLog.find({
-    organizationId,
-    actionType: "STAGE_CHANGE",
-  }).sort({ createdAt: 1 });
+  organizationId: string
+): Promise<DecisionLog[]> => {
+  return prisma.decisionLog.findMany({
+    where: {
+      organizationId,
+      actionType: ActionType.STAGE_CHANGE,
+    },
+    orderBy: { createdAt: "asc" },
+  });
 };

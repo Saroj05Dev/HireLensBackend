@@ -1,29 +1,34 @@
-import { ClientSession, Types } from "mongoose";
-import Organization, { IOrganization, IOrganizationDocument } from "../models/Organization.js";
+import { Organization, Prisma } from "@prisma/client";
+import { prisma } from "../config/prisma.js";
 
 export const create = async (
-  data: Partial<IOrganization>,
-  session?: ClientSession
-): Promise<IOrganizationDocument> => {
-  const organization = new Organization(data);
-  await organization.save({ session });
-  return organization;
+  data: Prisma.OrganizationCreateInput,
+  tx?: Prisma.TransactionClient
+): Promise<Organization> => {
+  const db = tx || prisma;
+  return db.organization.create({
+    data,
+  });
 };
 
 export const updateOwner = async (
-  orgId: string | Types.ObjectId,
-  ownerId: string | Types.ObjectId,
-  session?: ClientSession
-): Promise<IOrganizationDocument | null> => {
-  return Organization.findByIdAndUpdate(
-    orgId,
-    { ownerId },
-    { session, new: true }
-  );
+  orgId: string,
+  ownerId: string,
+  tx?: Prisma.TransactionClient
+): Promise<Organization | null> => {
+  const db = tx || prisma;
+  return db.organization.update({
+    where: { id: orgId },
+    data: { ownerId },
+  });
 };
 
 export const findById = async (
-  orgId: string | Types.ObjectId
-): Promise<IOrganizationDocument | null> => {
-  return Organization.findById(orgId);
+  orgId: string,
+  tx?: Prisma.TransactionClient
+): Promise<Organization | null> => {
+  const db = tx || prisma;
+  return db.organization.findUnique({
+    where: { id: orgId },
+  });
 };

@@ -1,47 +1,55 @@
-import { Types } from "mongoose";
-import Invite, { IInvite, IInviteDocument } from "../models/Invite.js";
+import { Invite, Prisma } from "@prisma/client";
+import { prisma } from "../config/prisma.js";
 
 /**
  * Create new invitation record
  */
-export const create = async (data: Partial<IInvite>): Promise<IInviteDocument> => {
-  const invite = new Invite(data);
-  await invite.save();
-  return invite;
+export const create = async (
+  data: Prisma.InviteUncheckedCreateInput,
+  tx?: Prisma.TransactionClient
+): Promise<Invite> => {
+  const db = tx || prisma;
+  return db.invite.create({
+    data,
+  });
 };
 
 /**
  * Find invitation by token
  */
-export const findByToken = async (token: string): Promise<IInviteDocument | null> => {
-  return Invite.findOne({ token });
+export const findByToken = async (token: string): Promise<Invite | null> => {
+  return prisma.invite.findUnique({
+    where: { token },
+  });
 };
 
 /**
  * Find pending invitations for organization
  */
 export const findPendingByOrganization = async (
-  organizationId: string | Types.ObjectId
-): Promise<IInviteDocument[]> => {
-  return Invite.find({
-    organizationId,
-    isAccepted: false,
-  })
-    .select("email role token createdAt expiresAt")
-    .sort({ createdAt: -1 });
+  organizationId: string
+): Promise<Invite[]> => {
+  return prisma.invite.findMany({
+    where: {
+      organizationId,
+      isAccepted: false,
+    },
+    orderBy: { createdAt: "desc" },
+  });
 };
 
 /**
  * Mark invitation as accepted
  */
 export const markAccepted = async (
-  inviteId: string | Types.ObjectId
-): Promise<IInviteDocument | null> => {
-  return Invite.findByIdAndUpdate(
-    inviteId,
-    { isAccepted: true },
-    { new: true }
-  );
+  inviteId: string,
+  tx?: Prisma.TransactionClient
+): Promise<Invite | null> => {
+  const db = tx || prisma;
+  return db.invite.update({
+    where: { id: inviteId },
+    data: { isAccepted: true },
+  });
 };
 
 /**
@@ -49,11 +57,13 @@ export const markAccepted = async (
  */
 export const findPendingByEmailAndOrg = async (
   email: string,
-  organizationId: string | Types.ObjectId
-): Promise<IInviteDocument | null> => {
-  return Invite.findOne({
-    email: email.toLowerCase(),
-    organizationId,
-    isAccepted: false,
+  organizationId: string
+): Promise<Invite | null> => {
+  return prisma.invite.findFirst({
+    where: {
+      email: email.toLowerCase(),
+      organizationId,
+      isAccepted: false,
+    },
   });
 };

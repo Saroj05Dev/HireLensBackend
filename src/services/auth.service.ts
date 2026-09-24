@@ -1,8 +1,8 @@
-import mongoose from "mongoose";
 import bcrypt from "bcryptjs";
 import jwt, { Secret } from "jsonwebtoken";
 import crypto from "crypto";
 
+import { prisma } from "../config/prisma.js";
 import * as organizationRepository from "../repositories/organization.repository.js";
 import * as userRepository from "../repositories/user.repository.js";
 import * as inviteRepository from "../repositories/invite.repository.js";
@@ -60,7 +60,7 @@ export const verifySignupOTP = async ({ email, otp }: { email: string; otp: stri
     throw new ApiError(401, "Invalid OTP");
   }
 
-  await otpRepository.markVerified(otpRecord._id);
+  await otpRepository.markVerified(otpRecord.id);
 
   return {
     message: "Email verified successfully",
@@ -117,7 +117,7 @@ export const verifyPasswordResetOTP = async ({ email, otp }: { email: string; ot
     throw new ApiError(401, "Invalid OTP");
   }
 
-  await otpRepository.markVerified(otpRecord._id);
+  await otpRepository.markVerified(otpRecord.id);
 
   return {
     message: "OTP verified successfully",
@@ -142,7 +142,7 @@ export const resetPassword = async ({ email, newPassword }: { email: string; new
   }
 
   const hashedPassword = await bcrypt.hash(newPassword, 10);
-  await userRepository.updatePassword(user._id, hashedPassword);
+  await userRepository.updatePassword(user.id, hashedPassword);
   await otpRepository.deleteByEmail(email, "PASSWORD_RESET");
 
   return {
@@ -161,26 +161,23 @@ export const register = async ({
   password: string;
   organizationName: string;
 }) => {
-  const session = await mongoose.startSession();
-  session.startTransaction();
+  const existingUser = await userRepository.findByEmail(email);
+  if (existingUser) {
+    throw new ApiError(409, "User with this email already exists");
+  }
 
-  try {
-    const existingUser = await userRepository.findByEmail(email);
-    if (existingUser) {
-      throw new ApiError(409, "User with this email already exists");
-    }
+  const hasVerifiedOTP = await otpRepository.hasRecentVerifiedOTP(email, "SIGNUP");
+  if (!hasVerifiedOTP) {
+    throw new ApiError(403, "Email not verified. Please verify your email first.");
+  }
 
-    const hasVerifiedOTP = await otpRepository.hasRecentVerifiedOTP(email, "SIGNUP");
-    if (!hasVerifiedOTP) {
-      throw new ApiError(403, "Email not verified. Please verify your email first.");
-    }
+  const hashedPassword = await bcrypt.hash(password, 10);
 
+  return prisma.$transaction(async (tx) => {
     const organization = await organizationRepository.create(
       { name: organizationName },
-      session
+      tx
     );
-
-    const hashedPassword = await bcrypt.hash(password, 10);
 
     const user = await userRepository.create(
       {
@@ -188,39 +185,32 @@ export const register = async ({
         email,
         password: hashedPassword,
         role: "ADMIN",
-        organizationId: organization._id,
+        organizationId: organization.id,
       },
-      session
+      tx
     );
 
-    await organizationRepository.updateOwner(organization._id, user._id, session);
+    await organizationRepository.updateOwner(organization.id, user.id, tx);
 
     const tokens: AuthTokens = generateToken({
-      userId: user._id.toString(),
+      userId: user.id,
       role: user.role,
-      organizationId: user.organizationId.toString(),
+      organizationId: user.organizationId,
     });
 
-    await otpRepository.deleteByEmail(email, "SIGNUP");
-
-    await session.commitTransaction();
-    session.endSession();
+    await otpRepository.deleteByEmail(email, "SIGNUP", tx);
 
     return {
       user: {
-        id: user._id,
+        id: user.id,
         role: user.role,
       },
       organization: {
-        id: organization._id,
+        id: organization.id,
       },
       tokens,
     };
-  } catch (error) {
-    await session.abortTransaction();
-    session.endSession();
-    throw error;
-  }
+  });
 };
 
 export const login = async ({ email, password }: { email?: string; password?: string }) => {
@@ -239,14 +229,14 @@ export const login = async ({ email, password }: { email?: string; password?: st
   }
 
   const tokens: AuthTokens = generateToken({
-    userId: user._id.toString(),
+    userId: user.id,
     role: user.role,
-    organizationId: user.organizationId.toString(),
+    organizationId: user.organizationId,
   });
 
   return {
     user: {
-      id: user._id,
+      id: user.id,
       role: user.role,
       organizationId: user.organizationId,
     },
@@ -293,7 +283,7 @@ export const fetchMe = async (userId: string) => {
   }
 
   return {
-    id: user._id,
+    id: user.id,
     name: user.name,
     email: user.email,
     role: user.role,
@@ -341,17 +331,17 @@ export const acceptInvite = async ({
     isActive: true,
   });
 
-  await inviteRepository.markAccepted(invite._id);
+  await inviteRepository.markAccepted(invite.id);
 
   const tokens = generateToken({
-    userId: user._id.toString(),
+    userId: user.id,
     role: user.role,
-    organizationId: user.organizationId.toString(),
+    organizationId: user.organizationId,
   });
 
   return {
     user: {
-      id: user._id,
+      id: user.id,
       email: user.email,
       role: user.role,
       name: user.name,

@@ -1,19 +1,20 @@
-import { Types } from "mongoose";
-import InterviewFeedback, {
-  IInterviewFeedback,
-  IInterviewFeedbackDocument,
-} from "../models/InterviewFeedback.js";
+import { InterviewFeedback, Prisma } from "@prisma/client";
+import { prisma } from "../config/prisma.js";
 
 export const create = async (
-  data: Partial<IInterviewFeedback>
-): Promise<IInterviewFeedbackDocument> => {
-  const feedback = new InterviewFeedback(data);
-  await feedback.save();
-  return feedback;
+  data: Prisma.InterviewFeedbackUncheckedCreateInput,
+  tx?: Prisma.TransactionClient
+): Promise<InterviewFeedback> => {
+  const db = tx || prisma;
+  return db.interviewFeedback.create({
+    data,
+  });
 };
 
 export const findByInterviewId = async (
-  interviewId: string | Types.ObjectId
-): Promise<IInterviewFeedbackDocument | null> => {
-  return InterviewFeedback.findOne({ interviewId });
+  interviewId: string
+): Promise<InterviewFeedback | null> => {
+  return prisma.interviewFeedback.findUnique({
+    where: { interviewId },
+  });
 };

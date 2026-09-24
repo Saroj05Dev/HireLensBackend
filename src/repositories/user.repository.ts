@@ -1,64 +1,75 @@
-import { ClientSession, Types } from "mongoose";
-import User, { IUser, IUserDocument, UserRole } from "../models/User.js";
+import { User, UserRole, Prisma } from "@prisma/client";
+import { prisma } from "../config/prisma.js";
 
-export const findByEmail = async (email: string): Promise<IUserDocument | null> => {
-  const user = await User.findOne({ email });
-  return user;
+export const findByEmail = async (email: string): Promise<User | null> => {
+  return prisma.user.findUnique({
+    where: { email: email.toLowerCase() },
+  });
 };
 
-export const findById = async (id: string | Types.ObjectId): Promise<IUserDocument | null> => {
-  return User.findById(id);
+export const findById = async (id: string): Promise<User | null> => {
+  return prisma.user.findUnique({
+    where: { id },
+  });
 };
 
-export const findByEmailWithPassword = async (email: string): Promise<IUserDocument | null> => {
-  const user = await User.findOne({ email }).select("+password");
-  return user;
+export const findByEmailWithPassword = async (email: string): Promise<User | null> => {
+  return prisma.user.findUnique({
+    where: { email: email.toLowerCase() },
+  });
 };
 
 export const findByOrganizationId = async (
-  organizationId: string | Types.ObjectId
-): Promise<IUserDocument[]> => {
-  return User.find({ organizationId })
-    .select("_id name email role isActive createdAt")
-    .sort({ createdAt: -1 });
+  organizationId: string
+): Promise<User[]> => {
+  return prisma.user.findMany({
+    where: { organizationId },
+    orderBy: { createdAt: "desc" },
+  });
 };
 
 export const create = async (
-  data: Partial<IUser>,
-  session?: ClientSession
-): Promise<IUserDocument> => {
-  const user = new User(data);
-  await user.save({ session });
-  return user;
+  data: Prisma.UserUncheckedCreateInput,
+  tx?: Prisma.TransactionClient
+): Promise<User> => {
+  const db = tx || prisma;
+  return db.user.create({
+    data,
+  });
 };
 
 export const updateById = async (
-  userId: string | Types.ObjectId,
-  updateData: Partial<IUser>
-): Promise<IUserDocument | null> => {
-  return User.findByIdAndUpdate(userId, updateData, { new: true });
+  userId: string,
+  updateData: Prisma.UserUncheckedUpdateInput,
+  tx?: Prisma.TransactionClient
+): Promise<User | null> => {
+  const db = tx || prisma;
+  return db.user.update({
+    where: { id: userId },
+    data: updateData,
+  });
 };
 
 export const findByOrganizationAndRole = async (
-  organizationId: string | Types.ObjectId,
+  organizationId: string,
   role: UserRole
-): Promise<IUserDocument[]> => {
-  return User.find({
-    organizationId,
-    role,
-    isActive: true,
-  })
-    .select("_id name email role")
-    .sort({ name: 1 });
+): Promise<User[]> => {
+  return prisma.user.findMany({
+    where: {
+      organizationId,
+      role,
+      isActive: true,
+    },
+    orderBy: { name: "asc" },
+  });
 };
 
 export const updatePassword = async (
-  userId: string | Types.ObjectId,
+  userId: string,
   hashedPassword: string
-): Promise<IUserDocument | null> => {
-  return User.findByIdAndUpdate(
-    userId,
-    { password: hashedPassword },
-    { new: true }
-  );
+): Promise<User | null> => {
+  return prisma.user.update({
+    where: { id: userId },
+    data: { password: hashedPassword },
+  });
 };

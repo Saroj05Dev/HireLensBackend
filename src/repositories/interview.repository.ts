@@ -1,74 +1,102 @@
-import { Types } from "mongoose";
-import Interview, { IInterview, IInterviewDocument, InterviewStatus } from "../models/Interview.js";
+import { Interview, InterviewStatus, Prisma } from "@prisma/client";
+import { prisma } from "../config/prisma.js";
 
-interface InterviewFilters {
+export interface InterviewFilters {
   status?: InterviewStatus;
-  jobId?: string | Types.ObjectId;
-  candidateId?: string | Types.ObjectId;
+  jobId?: string;
+  candidateId?: string;
 }
 
-export const create = async (data: Partial<IInterview>): Promise<IInterviewDocument> => {
-  const interview = new Interview(data);
-  await interview.save();
-  return interview;
+const interviewInclude = {
+  interviewer: {
+    select: {
+      id: true,
+      name: true,
+      email: true,
+    },
+  },
+  candidate: {
+    select: {
+      id: true,
+      name: true,
+      email: true,
+    },
+  },
+  job: {
+    select: {
+      id: true,
+      title: true,
+    },
+  },
 };
 
-export const findById = async (
-  interviewId: string | Types.ObjectId
-): Promise<IInterviewDocument | null> => {
-  return Interview.findById(interviewId);
+export const create = async (
+  data: Prisma.InterviewUncheckedCreateInput,
+  tx?: Prisma.TransactionClient
+): Promise<Interview> => {
+  const db = tx || prisma;
+  return db.interview.create({
+    data,
+  });
 };
 
-export const findByCandidateId = async (
-  candidateId: string | Types.ObjectId
-): Promise<IInterviewDocument[]> => {
-  return Interview.find({ candidateId })
-    .populate("interviewerId", "name email")
-    .populate("jobId", "title")
-    .populate("candidateId", "name email");
+export const findById = async (interviewId: string) => {
+  return prisma.interview.findUnique({
+    where: { id: interviewId },
+    include: interviewInclude,
+  });
 };
 
-export const findByInterviewerId = async (
-  interviewerId: string | Types.ObjectId
-): Promise<IInterviewDocument[]> => {
-  return Interview.find({ interviewerId })
-    .populate("candidateId", "name email")
-    .populate("jobId", "title")
-    .populate("interviewerId", "name email")
-    .sort({ scheduledAt: 1 });
+export const findByCandidateId = async (candidateId: string) => {
+  return prisma.interview.findMany({
+    where: { candidateId },
+    include: interviewInclude,
+    orderBy: { createdAt: "desc" },
+  });
 };
 
-export const findByJobId = async (
-  jobId: string | Types.ObjectId
-): Promise<IInterviewDocument[]> => {
-  return Interview.find({ jobId })
-    .populate("candidateId", "name email")
-    .populate("interviewerId", "name email")
-    .sort({ scheduledAt: 1 });
+export const findByInterviewerId = async (interviewerId: string) => {
+  return prisma.interview.findMany({
+    where: { interviewerId },
+    include: interviewInclude,
+    orderBy: { scheduledAt: "asc" },
+  });
+};
+
+export const findByJobId = async (jobId: string) => {
+  return prisma.interview.findMany({
+    where: { jobId },
+    include: interviewInclude,
+    orderBy: { scheduledAt: "asc" },
+  });
 };
 
 export const findByOrganization = async (
-  organizationId: string | Types.ObjectId,
+  organizationId: string,
   filters: InterviewFilters = {}
-): Promise<IInterviewDocument[]> => {
-  const query: Record<string, any> = { organizationId };
-  if (filters.status) query.status = filters.status;
-  if (filters.jobId) query.jobId = filters.jobId;
-  if (filters.candidateId) query.candidateId = filters.candidateId;
+) => {
+  const where: Prisma.InterviewWhereInput = {
+    organizationId,
+    ...(filters.status && { status: filters.status }),
+    ...(filters.jobId && { jobId: filters.jobId }),
+    ...(filters.candidateId && { candidateId: filters.candidateId }),
+  };
 
-  return Interview.find(query)
-    .populate("candidateId", "name email")
-    .populate("interviewerId", "name email")
-    .populate("jobId", "title")
-    .sort({ scheduledAt: 1 });
+  return prisma.interview.findMany({
+    where,
+    include: interviewInclude,
+    orderBy: { scheduledAt: "asc" },
+  });
 };
 
 export const findByCandidateAndInterviewer = async (
-  candidateId: string | Types.ObjectId,
-  interviewerId: string | Types.ObjectId
-): Promise<IInterviewDocument | null> => {
-  return Interview.findOne({
-    candidateId,
-    interviewerId,
+  candidateId: string,
+  interviewerId: string
+): Promise<Interview | null> => {
+  return prisma.interview.findFirst({
+    where: {
+      candidateId,
+      interviewerId,
+    },
   });
 };

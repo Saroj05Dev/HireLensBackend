@@ -17,7 +17,7 @@ export const getCandidateTimeInStage = async (user: UserContext, candidateId: st
     return { candidateId, stages: [] };
   }
 
-  const stages: Array<{ stage?: string; durationHours: number }> = [];
+  const stages: Array<{ stage?: string | null; durationHours: number }> = [];
 
   for (let i = 0; i < logs.length; i++) {
     const current = logs[i];
@@ -49,7 +49,7 @@ export const getJobFunnel = async (user: UserContext, jobId: string) => {
       if (!funnelMap[log.toStage]) {
         funnelMap[log.toStage] = new Set();
       }
-      funnelMap[log.toStage].add(log.candidateId.toString());
+      funnelMap[log.toStage].add(log.candidateId);
     }
   });
 
@@ -68,7 +68,7 @@ export const getPipelineSummary = async (user: UserContext) => {
 
   const summary: Record<string, number> = {};
 
-  logs.forEach((log: { toStage: string }) => {
+  logs.forEach((log) => {
     if (log.toStage) {
       summary[log.toStage] = (summary[log.toStage] || 0) + 1;
     }
@@ -94,7 +94,7 @@ export const getTimeToHire = async (user: UserContext, jobId: string) => {
   const candidateMap: Record<string, typeof logs> = {};
 
   logs.forEach((log) => {
-    const cid = log.candidateId.toString();
+    const cid = log.candidateId;
     if (!candidateMap[cid]) {
       candidateMap[cid] = [];
     }
@@ -148,7 +148,7 @@ export const getOrganizationTimeToHire = async (user: UserContext) => {
   const candidateMap: Record<string, typeof logs> = {};
 
   logs.forEach((log) => {
-    const cid = log.candidateId.toString();
+    const cid = log.candidateId;
     if (!candidateMap[cid]) {
       candidateMap[cid] = [];
     }

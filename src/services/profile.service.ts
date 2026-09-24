@@ -1,27 +1,33 @@
 import type { Express } from "express";
 import "multer";
-import User from "../models/User.js";
+import { prisma } from "../config/prisma.js";
 import cloudinary from "../config/cloudinary.config.js";
 import ApiError from "../utils/ApiError.js";
 
-// ...rest remains unchanged
-
 export const getProfile = async (userId: string) => {
-  const user: any = await User.findById(userId)
-    .populate("organizationId", "name")
-    .select("-password");
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    include: {
+      organization: {
+        select: {
+          id: true,
+          name: true,
+        },
+      },
+    },
+  });
 
   if (!user) {
     throw new ApiError(404, "User not found");
   }
 
   return {
-    _id: user._id,
+    id: user.id,
     name: user.name,
     email: user.email,
     role: user.role,
-    organizationId: user.organizationId?._id,
-    organizationName: user.organizationId?.name,
+    organizationId: user.organizationId,
+    organizationName: user.organization?.name || null,
     avatarUrl: user.avatarUrl,
     title: user.title,
     createdAt: user.createdAt,
@@ -38,23 +44,30 @@ export const updateProfile = async (userId: string, updates: Record<string, any>
     }
   });
 
-  const user: any = await User.findByIdAndUpdate(
-    userId,
-    filteredUpdates,
-    { new: true, runValidators: true }
-  ).populate("organizationId", "name");
+  const user = await prisma.user.update({
+    where: { id: userId },
+    data: filteredUpdates,
+    include: {
+      organization: {
+        select: {
+          id: true,
+          name: true,
+        },
+      },
+    },
+  });
 
   if (!user) {
     throw new ApiError(404, "User not found");
   }
 
   return {
-    _id: user._id,
+    id: user.id,
     name: user.name,
     email: user.email,
     role: user.role,
-    organizationId: user.organizationId?._id,
-    organizationName: user.organizationId?.name,
+    organizationId: user.organizationId,
+    organizationName: user.organization?.name || null,
     avatarUrl: user.avatarUrl,
     title: user.title,
   };
@@ -86,11 +99,10 @@ export const uploadAvatar = async (userId: string, file?: Express.Multer.File) =
       uploadStream.end(file.buffer);
     });
 
-    const user = await User.findByIdAndUpdate(
-      userId,
-      { avatarUrl: result.secure_url },
-      { new: true }
-    );
+    const user = await prisma.user.update({
+      where: { id: userId },
+      data: { avatarUrl: result.secure_url },
+    });
 
     if (!user) {
       throw new ApiError(404, "User not found");

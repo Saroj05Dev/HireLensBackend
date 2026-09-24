@@ -1,6 +1,7 @@
-import mongoose from "mongoose";
 import "multer";
 import { createRequire } from "module";
+import { CandidateStage, ActionType } from "@prisma/client";
+import { prisma } from "../config/prisma.js";
 import ApiError from "../utils/ApiError.js";
 import cloudinary from "../config/cloudinary.config.js";
 import { getIO } from "../config/socket.js";
@@ -10,7 +11,6 @@ import * as decisionLogRepository from "../repositories/decisionLog.repository.j
 import * as interviewRepository from "../repositories/interview.repository.js";
 import * as organizationRepository from "../repositories/organization.repository.js";
 import { sendStageChangeEmail } from "./email.service.js";
-import { CandidateStage } from "../models/Candidate.js";
 
 const require = createRequire(import.meta.url);
 const pdfParsePackage = require("pdf-parse");
@@ -180,13 +180,9 @@ export const parseResumeProfile = async (file?: Express.Multer.File) => {
 const serializeCandidate = (candidate: any) => {
   if (!candidate) return candidate;
 
-  const plainCandidate = typeof candidate.toObject === "function"
-    ? candidate.toObject()
-    : { ...candidate };
-
   return {
-    ...plainCandidate,
-    resumeUrl: buildResumeViewUrl(plainCandidate),
+    ...candidate,
+    resumeUrl: buildResumeViewUrl(candidate),
   };
 };
 
@@ -232,7 +228,7 @@ export const addCandidate = async (
   }
 
   const job = await jobRepository.findById(jobId);
-  if (!job || job.organizationId.toString() !== user.organizationId) {
+  if (!job || job.organizationId !== user.organizationId) {
     throw new ApiError(404, "Job not found in your organization");
   }
 
@@ -241,7 +237,7 @@ export const addCandidate = async (
     : resumeUrl;
 
   const candidate = await candidateRepository.create({
-    organizationId: new mongoose.Types.ObjectId(user.organizationId),
+    organizationId: user.organizationId,
     name,
     email,
     phone,
@@ -249,8 +245,8 @@ export const addCandidate = async (
     resumePublicId: file
       ? (uploadedResume as UploadedResume).resumePublicId
       : extractCloudinaryPublicId(uploadedResume as string),
-    jobId: new mongoose.Types.ObjectId(jobId),
-    addedBy: new mongoose.Types.ObjectId(user.id),
+    jobId,
+    addedById: user.id,
   });
 
   return serializeCandidate(candidate);
@@ -260,7 +256,7 @@ export const getCandidatesByJob = async (user: UserContext, jobId: string) => {
   const candidates = await candidateRepository.findByJobId(jobId);
 
   return candidates
-    .filter((c) => c.organizationId.toString() === user.organizationId)
+    .filter((c) => c.organizationId === user.organizationId)
     .map(serializeCandidate);
 };
 
@@ -281,15 +277,21 @@ export const getAllCandidates = async (
 export const getCandidateProfile = async (user: UserContext, candidateId: string) => {
   const candidate = await candidateRepository.findById(candidateId);
 
-  if (!candidate || candidate.organizationId.toString() !== user.organizationId) {
+  if (!candidate || candidate.organizationId !== user.organizationId) {
     throw new ApiError(404, "Candidate not found in your organization");
   }
 
   return serializeCandidate(candidate);
 };
 
-const STAGE_ORDER: CandidateStage[] = ["APPLIED", "SCREENING", "INTERVIEW", "OFFER", "HIRED"];
-const VALID_STAGES: string[] = [...STAGE_ORDER, "REJECTED"];
+const STAGE_ORDER: CandidateStage[] = [
+  CandidateStage.APPLIED,
+  CandidateStage.SCREENING,
+  CandidateStage.INTERVIEW,
+  CandidateStage.OFFER,
+  CandidateStage.HIRED,
+];
+const VALID_STAGES: CandidateStage[] = [...STAGE_ORDER, CandidateStage.REJECTED];
 
 export const updateCandidateStage = async (
   user: UserContext,
@@ -300,13 +302,10 @@ export const updateCandidateStage = async (
     throw new ApiError(400, "Invalid stage");
   }
 
-  const session = await mongoose.startSession();
-  session.startTransaction();
+  return prisma.$transaction(async (tx) => {
+    const candidate = await candidateRepository.findById(candidateId, tx);
 
-  try {
-    const candidate = await candidateRepository.findById(candidateId, session);
-
-    if (!candidate || candidate.organizationId.toString() !== user.organizationId) {
+    if (!candidate || candidate.organizationId !== user.organizationId) {
       throw new ApiError(404, "Candidate not found");
     }
 
@@ -316,18 +315,18 @@ export const updateCandidateStage = async (
       throw new ApiError(400, "Candidate is already in this stage");
     }
 
-    if (fromStage === "HIRED") {
+    if (fromStage === CandidateStage.HIRED) {
       throw new ApiError(400, "A hired candidate cannot be moved. This is a final state.");
     }
 
-    if (fromStage === "REJECTED") {
+    if (fromStage === CandidateStage.REJECTED) {
       throw new ApiError(
         400,
         "A rejected candidate cannot be moved directly. Use the 'Reopen Candidate' action to re-evaluate them."
       );
     }
 
-    if (newStage !== "REJECTED") {
+    if (newStage !== CandidateStage.REJECTED) {
       const fromIdx = STAGE_ORDER.indexOf(fromStage);
       const toIdx = STAGE_ORDER.indexOf(newStage);
 
@@ -347,7 +346,7 @@ export const updateCandidateStage = async (
       }
     }
 
-    if (newStage === "INTERVIEW") {
+    if (newStage === CandidateStage.INTERVIEW) {
       const existingInterviews = await interviewRepository.findByCandidateId(candidateId);
       if (!existingInterviews || existingInterviews.length === 0) {
         throw new ApiError(
@@ -357,29 +356,28 @@ export const updateCandidateStage = async (
       }
     }
 
-    candidate.currentStage = newStage;
-    await candidate.save({ session });
+    await tx.candidate.update({
+      where: { id: candidateId },
+      data: { currentStage: newStage },
+    });
 
     await decisionLogRepository.create(
       {
-        organizationId: new mongoose.Types.ObjectId(user.organizationId),
-        candidateId: candidate._id,
+        organizationId: user.organizationId,
+        candidateId: candidate.id,
         jobId: candidate.jobId,
-        actionType: "STAGE_CHANGE",
-        performedBy: new mongoose.Types.ObjectId(user.id),
+        actionType: ActionType.STAGE_CHANGE,
+        performedById: user.id,
         fromStage,
         toStage: newStage,
         note,
       },
-      session
+      tx
     );
-
-    await session.commitTransaction();
-    session.endSession();
 
     const io = getIO();
     io.to(`org:${user.organizationId}`).emit("candidate:stage-updated", {
-      candidateId: candidate._id,
+      candidateId: candidate.id,
       jobId: candidate.jobId,
       fromStage,
       toStage: newStage,
@@ -388,8 +386,8 @@ export const updateCandidateStage = async (
     });
 
     io.to(`org:${user.organizationId}`).emit("decision:created", {
-      type: "STAGE_CHANGE",
-      candidateId: candidate._id,
+      type: ActionType.STAGE_CHANGE,
+      candidateId: candidate.id,
       jobId: candidate.jobId,
       performedBy: user.id,
       fromStage,
@@ -418,15 +416,11 @@ export const updateCandidateStage = async (
     }
 
     return {
-      candidateId: candidate._id,
+      candidateId: candidate.id,
       fromStage,
       toStage: newStage,
     };
-  } catch (error) {
-    await session.abortTransaction();
-    session.endSession();
-    throw error;
-  }
+  });
 };
 
 export const reopenCandidate = async (
@@ -434,46 +428,42 @@ export const reopenCandidate = async (
   candidateId: string,
   { note }: { note?: string } = {}
 ) => {
-  const session = await mongoose.startSession();
-  session.startTransaction();
+  return prisma.$transaction(async (tx) => {
+    const candidate = await candidateRepository.findById(candidateId, tx);
 
-  try {
-    const candidate = await candidateRepository.findById(candidateId, session);
-
-    if (!candidate || candidate.organizationId.toString() !== user.organizationId) {
+    if (!candidate || candidate.organizationId !== user.organizationId) {
       throw new ApiError(404, "Candidate not found");
     }
 
-    if (candidate.currentStage !== "REJECTED") {
+    if (candidate.currentStage !== CandidateStage.REJECTED) {
       throw new ApiError(400, "Only rejected candidates can be reopened.");
     }
 
-    const fromStage = "REJECTED";
-    const toStage: CandidateStage = "APPLIED";
+    const fromStage = CandidateStage.REJECTED;
+    const toStage: CandidateStage = CandidateStage.APPLIED;
 
-    candidate.currentStage = toStage;
-    await candidate.save({ session });
+    await tx.candidate.update({
+      where: { id: candidateId },
+      data: { currentStage: toStage },
+    });
 
     await decisionLogRepository.create(
       {
-        organizationId: new mongoose.Types.ObjectId(user.organizationId),
-        candidateId: candidate._id,
+        organizationId: user.organizationId,
+        candidateId: candidate.id,
         jobId: candidate.jobId,
-        actionType: "REOPENED",
-        performedBy: new mongoose.Types.ObjectId(user.id),
+        actionType: ActionType.REOPENED,
+        performedById: user.id,
         fromStage,
         toStage,
         note: note || "Candidate reopened for re-evaluation.",
       },
-      session
+      tx
     );
-
-    await session.commitTransaction();
-    session.endSession();
 
     const io = getIO();
     io.to(`org:${user.organizationId}`).emit("candidate:stage-updated", {
-      candidateId: candidate._id,
+      candidateId: candidate.id,
       jobId: candidate.jobId,
       fromStage,
       toStage,
@@ -482,8 +472,8 @@ export const reopenCandidate = async (
     });
 
     io.to(`org:${user.organizationId}`).emit("decision:created", {
-      type: "REOPENED",
-      candidateId: candidate._id,
+      type: ActionType.REOPENED,
+      candidateId: candidate.id,
       jobId: candidate.jobId,
       performedBy: user.id,
       fromStage,
@@ -493,21 +483,17 @@ export const reopenCandidate = async (
     });
 
     return {
-      candidateId: candidate._id,
+      candidateId: candidate.id,
       fromStage,
       toStage,
     };
-  } catch (error) {
-    await session.abortTransaction();
-    session.endSession();
-    throw error;
-  }
+  });
 };
 
 export const getCandidateDecisionLogs = async (user: UserContext, candidateId: string) => {
   const candidate = await candidateRepository.findById(candidateId);
 
-  if (!candidate || candidate.organizationId.toString() !== user.organizationId) {
+  if (!candidate || candidate.organizationId !== user.organizationId) {
     throw new ApiError(404, "Candidate not found");
   }
 
@@ -525,10 +511,9 @@ export const getCandidateDecisionLogs = async (user: UserContext, candidateId: s
 
 export const getInterviewsByCandidate = async (user: UserContext, candidateId: string) => {
   const candidate = await candidateRepository.findById(candidateId);
-  if (!candidate || candidate.organizationId.toString() !== user.organizationId) {
+  if (!candidate || candidate.organizationId !== user.organizationId) {
     throw new ApiError(404, "Candidate not found in your organization");
   }
 
-  const interviews = await interviewRepository.findByCandidateId(candidateId);
-  return interviews;
+  return interviewRepository.findByCandidateId(candidateId);
 };
