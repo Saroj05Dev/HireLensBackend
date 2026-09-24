@@ -179,7 +179,7 @@ export const deactivateMember = async (adminUser: AdminUserContext, userId: stri
     throw new ApiError(404, "Member not found in this organization");
   }
 
-  const adminId = adminUser.id || adminUser._id;
+  const adminId = adminUser.id;
   if (user.id === adminId) {
     throw new ApiError(400, "Cannot deactivate your own account");
   }

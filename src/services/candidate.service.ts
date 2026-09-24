@@ -303,9 +303,12 @@ export const updateCandidateStage = async (
   }
 
   return prisma.$transaction(async (tx) => {
+    console.log("[DEBUG] updateCandidateStage - candidateId:", candidateId, "length:", candidateId.length);
     const candidate = await candidateRepository.findById(candidateId, tx);
+    console.log("[DEBUG] updateCandidateStage - candidate found:", !!candidate);
 
     if (!candidate || candidate.organizationId !== user.organizationId) {
+      console.log("[DEBUG] Candidate not found or org mismatch. candidate:", !!candidate, "orgId:", candidate?.organizationId, "userOrgId:", user.organizationId);
       throw new ApiError(404, "Candidate not found");
     }
 
@@ -347,7 +350,7 @@ export const updateCandidateStage = async (
     }
 
     if (newStage === CandidateStage.INTERVIEW) {
-      const existingInterviews = await interviewRepository.findByCandidateId(candidateId);
+      const existingInterviews = await interviewRepository.findByCandidateId(candidateId, tx);
       if (!existingInterviews || existingInterviews.length === 0) {
         throw new ApiError(
           400,
@@ -420,6 +423,9 @@ export const updateCandidateStage = async (
       fromStage,
       toStage: newStage,
     };
+  }, {
+    maxWait: 10000,
+    timeout: 15000,
   });
 };
 

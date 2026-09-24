@@ -59,6 +59,9 @@ export const assignInterviewer = async (
     scheduledAt: scheduledAt ? new Date(scheduledAt) : undefined,
   });
 
+  // Fetch the interview with populated relationships
+  const populatedInterview = await interviewRepository.findById(interview.id);
+
   await decisionLogRepository.create({
     organizationId: user.organizationId,
     candidateId,
@@ -124,7 +127,7 @@ export const assignInterviewer = async (
     organizationName: organization?.name || "HireLens",
   }).catch((err) => console.error("[Email] Interview scheduled email error:", err));
 
-  return interview;
+  return populatedInterview;
 };
 
 export const submitFeedback = async (

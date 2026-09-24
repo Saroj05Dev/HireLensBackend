@@ -47,8 +47,12 @@ export const findById = async (interviewId: string) => {
   });
 };
 
-export const findByCandidateId = async (candidateId: string) => {
-  return prisma.interview.findMany({
+export const findByCandidateId = async (
+  candidateId: string,
+  tx?: Prisma.TransactionClient
+) => {
+  const db = tx || prisma;
+  return db.interview.findMany({
     where: { candidateId },
     include: interviewInclude,
     orderBy: { createdAt: "desc" },
