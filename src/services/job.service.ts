@@ -1,4 +1,4 @@
-import mongoose from "mongoose";
+import { JobStatus } from "@prisma/client";
 import * as jobRepository from "../repositories/job.repository.js";
 import ApiError from "../utils/ApiError.js";
 
@@ -36,20 +36,20 @@ export const createJob = async (user: UserContext, jobData: JobPayload) => {
     skills,
     experience,
     location,
-    organizationId: new mongoose.Types.ObjectId(user.organizationId),
-    createdBy: new mongoose.Types.ObjectId(user.id),
-    status: "OPEN",
+    organizationId: user.organizationId,
+    createdById: user.id,
+    status: JobStatus.OPEN,
   });
 
   return {
-    id: job._id,
+    id: job.id,
     title: job.title,
     description: job.description,
     skills: job.skills,
     experience: job.experience,
     location: job.location,
     status: job.status,
-    createdBy: job.createdBy,
+    createdById: job.createdById,
     createdAt: job.createdAt,
   };
 };
@@ -57,8 +57,8 @@ export const createJob = async (user: UserContext, jobData: JobPayload) => {
 export const getOrganizationJobs = async (organizationId: string) => {
   const jobs = await jobRepository.findByOrganizationId(organizationId);
 
-  return jobs.map((job: any) => ({
-    id: job._id,
+  return jobs.map((job) => ({
+    id: job.id,
     title: job.title,
     description: job.description,
     skills: job.skills,
@@ -66,10 +66,10 @@ export const getOrganizationJobs = async (organizationId: string) => {
     location: job.location,
     status: job.status,
     createdBy: {
-      id: job.createdBy?._id,
       name: job.createdBy?.name,
       email: job.createdBy?.email,
     },
+    candidateCount: (job as any)._count?.candidates || 0,
     createdAt: job.createdAt,
     updatedAt: job.updatedAt,
   }));
@@ -82,29 +82,29 @@ export const closeJob = async (user: UserContext, jobId: string) => {
     throw new ApiError(404, "Job not found");
   }
 
-  if (job.organizationId.toString() !== user.organizationId) {
+  if (job.organizationId !== user.organizationId) {
     throw new ApiError(403, "Access denied. Job belongs to another organization");
   }
 
-  if (job.status === "CLOSED") {
+  if (job.status === JobStatus.CLOSED) {
     throw new ApiError(400, "Job is already closed");
   }
 
-  const updatedJob = await jobRepository.updateStatus(jobId, "CLOSED");
+  const updatedJob = await jobRepository.updateStatus(jobId, JobStatus.CLOSED);
 
   if (!updatedJob) {
     throw new ApiError(500, "Failed to update job status");
   }
 
   return {
-    id: updatedJob._id,
+    id: updatedJob.id,
     title: updatedJob.title,
     description: updatedJob.description,
     skills: updatedJob.skills,
     experience: updatedJob.experience,
     location: updatedJob.location,
     status: updatedJob.status,
-    createdBy: updatedJob.createdBy,
+    createdById: updatedJob.createdById,
     createdAt: updatedJob.createdAt,
     updatedAt: updatedJob.updatedAt,
   };
@@ -117,43 +117,43 @@ export const reopenJob = async (user: UserContext, jobId: string) => {
     throw new ApiError(404, "Job not found");
   }
 
-  if (job.organizationId.toString() !== user.organizationId) {
+  if (job.organizationId !== user.organizationId) {
     throw new ApiError(403, "Access denied. Job belongs to another organization");
   }
 
-  if (job.status === "OPEN") {
+  if (job.status === JobStatus.OPEN) {
     throw new ApiError(400, "Job is already open");
   }
 
-  const updatedJob = await jobRepository.updateStatus(jobId, "OPEN");
+  const updatedJob = await jobRepository.updateStatus(jobId, JobStatus.OPEN);
 
   if (!updatedJob) {
     throw new ApiError(500, "Failed to update job status");
   }
 
   return {
-    id: updatedJob._id,
+    id: updatedJob.id,
     title: updatedJob.title,
     description: updatedJob.description,
     skills: updatedJob.skills,
     experience: updatedJob.experience,
     location: updatedJob.location,
     status: updatedJob.status,
-    createdBy: updatedJob.createdBy,
+    createdById: updatedJob.createdById,
     createdAt: updatedJob.createdAt,
     updatedAt: updatedJob.updatedAt,
   };
 };
 
 export const getJobById = async (jobId: string) => {
-  const job: any = await jobRepository.findById(jobId);
+  const job = await jobRepository.findById(jobId);
 
   if (!job) {
     throw new ApiError(404, "Job not found");
   }
 
   return {
-    id: job._id,
+    id: job.id,
     title: job.title,
     description: job.description,
     skills: job.skills,
@@ -161,7 +161,6 @@ export const getJobById = async (jobId: string) => {
     location: job.location,
     status: job.status,
     createdBy: {
-      id: job.createdBy?._id,
       name: job.createdBy?.name,
       email: job.createdBy?.email,
     },
@@ -179,7 +178,7 @@ export const updateJob = async (user: UserContext, jobId: string, jobData: JobPa
     throw new ApiError(404, "Job not found");
   }
 
-  if (job.organizationId.toString() !== user.organizationId) {
+  if (job.organizationId !== user.organizationId) {
     throw new ApiError(403, "Access denied. Job belongs to another organization");
   }
 
@@ -207,7 +206,7 @@ export const updateJob = async (user: UserContext, jobId: string, jobData: JobPa
   }
 
   return {
-    id: updatedJob._id,
+    id: updatedJob.id,
     title: updatedJob.title,
     description: updatedJob.description,
     skills: updatedJob.skills,
@@ -227,14 +226,14 @@ export const deleteJob = async (user: UserContext, jobId: string) => {
     throw new ApiError(404, "Job not found");
   }
 
-  if (job.organizationId.toString() !== user.organizationId) {
+  if (job.organizationId !== user.organizationId) {
     throw new ApiError(403, "Access denied. Job belongs to another organization");
   }
 
   await jobRepository.deleteById(jobId);
 
   return {
-    id: job._id,
+    id: job.id,
     title: job.title,
   };
 };

@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from "express";
-import { UserRole } from "../models/User.js";
+import { UserRole } from "@prisma/client";
 import ApiError from "../utils/ApiError.js";
 
 const roleMiddleware = (...allowedRoles: (UserRole | string)[]) => {

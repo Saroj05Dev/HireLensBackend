@@ -1,0 +1,311 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+generator client {
+  provider = "prisma-client-js"
+  // previewFeatures = ["driverAdapters"]
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ENUMS
+
+enum UserRole {
+  ADMIN
+  RECRUITER
+  INTERVIEWER
+}
+
+enum JobStatus {
+  OPEN
+  CLOSED
+}
+
+enum CandidateStage {
+  APPLIED
+  SCREENING
+  INTERVIEW
+  OFFER
+  HIRED
+  REJECTED
+}
+
+enum InterviewStatus {
+  ASSIGNED
+  COMPLETED
+}
+
+enum Recommendation {
+  PROCEED
+  HOLD
+  REJECT
+}
+
+enum InviteRole {
+  RECRUITER
+  INTERVIEWER
+}
+
+enum NotificationType {
+  INTERVIEW_ASSIGNED
+  INTERVIEW_FEEDBACK_SUBMITTED
+  CANDIDATE_STAGE_CHANGED
+  TEAM_INVITATION
+  JOB_STATUS_CHANGED
+  CANDIDATE_ADDED
+}
+
+enum OtpPurpose {
+  SIGNUP
+  PASSWORD_RESET
+}
+
+enum ActionType {
+  STAGE_CHANGE
+  INTERVIEW_ASSIGNED
+  FEEDBACK_SUBMITTED
+  REOPENED
+}
+
+// MODELS
+
+model Organization {
+  id        String   @id @default(uuid())
+  name      String   @unique
+  ownerId   String?  @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  owner         User?          @relation("OrganizationOwner", fields: [ownerId], references: [id], onDelete: SetNull)
+  members       User[]         @relation("OrganizationMembers")
+  jobs          Job[]
+  candidates    Candidate[]
+  interviews    Interview[]
+  invites       Invite[]
+  notifications Notification[]
+  decisionLogs  DecisionLog[]
+
+  @@map("organizations")
+}
+
+model User {
+  id             String    @id @default(uuid())
+  name           String?
+  email          String    @unique
+  password       String?
+  role           UserRole
+  organizationId String
+  avatarUrl      String?
+  title          String?
+  isActive       Boolean   @default(true)
+  lastLoginAt    DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  // Relations
+  organization     Organization        @relation("OrganizationMembers", fields: [organizationId], references: [id], onDelete: Cascade)
+  ownedOrg         Organization?       @relation("OrganizationOwner")
+  createdJobs      Job[]               @relation("UserCreatedJobs")
+  addedCandidates  Candidate[]         @relation("UserAddedCandidates")
+  interviews       Interview[]         @relation("UserAssignedInterviews")
+  givenFeedbacks   InterviewFeedback[] @relation("UserGivenFeedbacks")
+  notifications    Notification[]
+  decisionLogs     DecisionLog[]       @relation("UserDecisionLogs")
+
+  @@index([organizationId])
+  @@map("users")
+}
+
+model Job {
+  id             String    @id @default(uuid())
+  title          String
+  description    String
+  skills         String[]
+  experience     String
+  location       String
+  status         JobStatus @default(OPEN)
+  organizationId String
+  createdById    String
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  // Relations
+  organization Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  createdBy    User          @relation("UserCreatedJobs", fields: [createdById], references: [id], onDelete: Restrict)
+  candidates   Candidate[]
+  interviews   Interview[]
+  decisionLogs DecisionLog[]
+
+  @@index([organizationId, status])
+  @@index([organizationId])
+  @@index([createdById])
+  @@map("jobs")
+}
+
+model Candidate {
+  id             String         @id @default(uuid())
+  organizationId String
+  jobId          String
+  name           String
+  email          String
+  phone          String?
+  resumeUrl      String?
+  resumePublicId String?
+  currentStage   CandidateStage @default(APPLIED)
+  addedById      String
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  // Relations
+  organization Organization        @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  job          Job                 @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  addedBy      User                @relation("UserAddedCandidates", fields: [addedById], references: [id], onDelete: Restrict)
+  interviews   Interview[]
+  feedbacks    InterviewFeedback[]
+  decisionLogs DecisionLog[]
+
+  @@index([organizationId])
+  @@index([jobId])
+  @@index([currentStage])
+  @@map("candidates")
+}
+
+model DecisionLog {
+  id             String     @id @default(uuid())
+  organizationId String
+  candidateId    String
+  jobId          String
+  actionType     ActionType
+  performedById  String
+  fromStage      String?
+  toStage        String?
+  note           String?
+  createdAt      DateTime   @default(now())
+
+  // Relations
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  candidate    Candidate    @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  job          Job          @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  performedBy  User         @relation("UserDecisionLogs", fields: [performedById], references: [id], onDelete: Restrict)
+
+  @@index([organizationId])
+  @@index([candidateId])
+  @@index([jobId])
+  @@index([performedById])
+  @@map("decision_logs")
+}
+
+model Interview {
+  id             String          @id @default(uuid())
+  organizationId String
+  candidateId    String
+  jobId          String
+  interviewerId  String
+  status         InterviewStatus @default(ASSIGNED)
+  scheduledAt    DateTime?
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+
+  // Relations
+  organization Organization       @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  candidate    Candidate          @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  job          Job                @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  interviewer  User               @relation("UserAssignedInterviews", fields: [interviewerId], references: [id], onDelete: Restrict)
+  feedback     InterviewFeedback?
+
+  @@index([organizationId])
+  @@index([candidateId])
+  @@index([jobId])
+  @@index([interviewerId])
+  @@map("interviews")
+}
+
+model InterviewFeedback {
+  id             String         @id @default(uuid())
+  interviewId    String         @unique
+  candidateId    String
+  interviewerId  String
+  rating         Int
+  strengths      String
+  weaknesses     String
+  recommendation Recommendation
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  // Relations
+  interview   Interview @relation(fields: [interviewId], references: [id], onDelete: Cascade)
+  candidate   Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  interviewer User      @relation("UserGivenFeedbacks", fields: [interviewerId], references: [id], onDelete: Restrict)
+
+  @@index([interviewId])
+  @@index([candidateId])
+  @@index([interviewerId])
+  @@map("interview_feedbacks")
+}
+
+model Invite {
+  id             String     @id @default(uuid())
+  email          String
+  role           InviteRole
+  organizationId String
+  token          String     @unique
+  expiresAt      DateTime
+  isAccepted     Boolean    @default(false)
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+
+  // Relations
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([email])
+  @@index([token])
+  @@index([expiresAt])
+  @@index([isAccepted])
+  @@index([email, organizationId, isAccepted])
+  @@index([organizationId, isAccepted])
+  @@index([expiresAt, isAccepted])
+  @@map("invites")
+}
+
+model Notification {
+  id             String           @id @default(uuid())
+  userId         String
+  organizationId String
+  type           NotificationType
+  title          String
+  message        String
+  metadata       Json?            @default("{}")
+  isRead         Boolean          @default(false)
+  readAt         DateTime?
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  // Relations
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([organizationId])
+  @@index([isRead])
+  @@index([userId, isRead, createdAt(sort: Desc)])
+  @@map("notifications")
+}
+
+model OTP {
+  id         String     @id @default(uuid())
+  email      String
+  otp        String
+  purpose    OtpPurpose @default(SIGNUP)
+  isVerified Boolean    @default(false)
+  expiresAt  DateTime
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+
+  @@index([email, purpose])
+  @@index([expiresAt])
+  @@map("otps")
+}

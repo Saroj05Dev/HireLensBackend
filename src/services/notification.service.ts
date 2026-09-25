@@ -1,12 +1,11 @@
-import mongoose from "mongoose";
+import { NotificationType } from "@prisma/client";
 import * as notificationRepository from "../repositories/notification.repository.js";
 import { emitNotification } from "../config/socket.js";
 import ApiError from "../utils/ApiError.js";
-import { NotificationType } from "../models/Notification.js";
 
 interface CreateNotificationParams {
-  userId: string | mongoose.Types.ObjectId;
-  organizationId: string | mongoose.Types.ObjectId;
+  userId: string;
+  organizationId: string;
   type: NotificationType;
   title: string;
   message: string;
@@ -22,15 +21,15 @@ export const createNotification = async ({
   metadata = {},
 }: CreateNotificationParams) => {
   const notification = await notificationRepository.create({
-    userId: typeof userId === "string" ? new mongoose.Types.ObjectId(userId) : userId,
-    organizationId: typeof organizationId === "string" ? new mongoose.Types.ObjectId(organizationId) : organizationId,
+    userId,
+    organizationId,
     type,
     title,
     message,
     metadata,
   });
 
-  emitNotification(userId.toString(), notification);
+  emitNotification(userId, notification);
   return notification;
 };
 
@@ -100,7 +99,7 @@ export const notifyInterviewAssignment = async ({
   return createNotification({
     userId: interviewerId,
     organizationId,
-    type: "INTERVIEW_ASSIGNED",
+    type: NotificationType.INTERVIEW_ASSIGNED,
     title: "New Interview Assigned",
     message: `You have been assigned to interview ${candidateName} for ${jobTitle} on ${new Date(interviewDate).toLocaleDateString()}`,
     metadata,
@@ -123,7 +122,7 @@ export const notifyFeedbackSubmitted = async ({
   return createNotification({
     userId: recruiterId,
     organizationId,
-    type: "INTERVIEW_FEEDBACK_SUBMITTED",
+    type: NotificationType.INTERVIEW_FEEDBACK_SUBMITTED,
     title: "Interview Feedback Submitted",
     message: `${interviewerName} has submitted feedback for ${candidateName}`,
     metadata,
@@ -148,7 +147,7 @@ export const notifyCandidateStageChange = async ({
   return createNotification({
     userId,
     organizationId,
-    type: "CANDIDATE_STAGE_CHANGED",
+    type: NotificationType.CANDIDATE_STAGE_CHANGED,
     title: "Candidate Stage Updated",
     message: `${candidateName} moved from ${oldStage} to ${newStage}`,
     metadata,
@@ -171,7 +170,7 @@ export const notifyTeamInvitation = async ({
   return createNotification({
     userId,
     organizationId,
-    type: "TEAM_INVITATION",
+    type: NotificationType.TEAM_INVITATION,
     title: "Team Invitation",
     message: `${inviterName} invited you to join ${organizationName}`,
     metadata,
@@ -194,7 +193,7 @@ export const notifyJobStatusChange = async ({
   return createNotification({
     userId,
     organizationId,
-    type: "JOB_STATUS_CHANGED",
+    type: NotificationType.JOB_STATUS_CHANGED,
     title: "Job Status Changed",
     message: `${jobTitle} has been ${status.toLowerCase()}`,
     metadata,
@@ -217,7 +216,7 @@ export const notifyCandidateAdded = async ({
   return createNotification({
     userId,
     organizationId,
-    type: "CANDIDATE_ADDED",
+    type: NotificationType.CANDIDATE_ADDED,
     title: "New Candidate Added",
     message: `${candidateName} has been added to ${jobTitle}`,
     metadata,

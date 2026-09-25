@@ -1,18 +1,16 @@
 import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
 import { randomUUID } from "crypto";
+import { InviteRole } from "@prisma/client";
 import { SERVER_CONFIG } from "../config/server.config.js";
 import ApiError from "../utils/ApiError.js";
 import * as userRepository from "../repositories/user.repository.js";
 import * as inviteRepository from "../repositories/invite.repository.js";
 import * as organizationRepository from "../repositories/organization.repository.js";
 import { sendInviteEmail } from "./email.service.js";
-import { InviteRole } from "../models/Invite.js";
-import mongoose from "mongoose";
 
 interface AdminUserContext {
-  id?: string;
-  _id?: string;
+  id: string;
   organizationId: string;
   [key: string]: any;
 }
@@ -48,7 +46,7 @@ export const inviteUser = async (
   const invite = await inviteRepository.create({
     email,
     role: normalizedRole,
-    organizationId: new mongoose.Types.ObjectId(adminUser.organizationId),
+    organizationId: adminUser.organizationId,
     token,
     expiresAt,
     isAccepted: false,
@@ -76,7 +74,7 @@ export const inviteUser = async (
 
   return {
     invite: {
-      id: invite._id,
+      id: invite.id,
       email: invite.email,
       role: invite.role,
       token: invite.token,
@@ -119,23 +117,23 @@ export const acceptInvite = async ({
     throw new ApiError(400, "Invitation already accepted");
   }
 
-  if (user.organizationId.toString() !== organizationId) {
+  if (user.organizationId !== organizationId) {
     throw new ApiError(400, "Token organization mismatch");
   }
 
   const hashedPassword = await bcrypt.hash(password, 10);
 
-  user.name = name;
-  user.password = hashedPassword;
-  user.isActive = true;
-
-  await user.save();
+  const updatedUser = await userRepository.updateById(userId, {
+    name,
+    password: hashedPassword,
+    isActive: true,
+  });
 
   return {
     user: {
-      id: user._id,
-      email: user.email,
-      role: user.role,
+      id: updatedUser?.id || user.id,
+      email: updatedUser?.email || user.email,
+      role: updatedUser?.role || user.role,
     },
   };
 };
@@ -144,7 +142,7 @@ export const getPendingInvites = async (organizationId: string) => {
   const invites = await inviteRepository.findPendingByOrganization(organizationId);
 
   return invites.map((invite) => ({
-    id: invite._id,
+    id: invite.id,
     email: invite.email,
     role: invite.role,
     token: invite.token,
@@ -157,7 +155,7 @@ export const getMembers = async (organizationId: string) => {
   const users = await userRepository.findByOrganizationId(organizationId);
 
   return users.map((user) => ({
-    id: user._id,
+    id: user.id,
     name: user.name,
     email: user.email,
     role: user.role,
@@ -177,17 +175,12 @@ export const deactivateMember = async (adminUser: AdminUserContext, userId: stri
     throw new ApiError(404, "Member not found in this organization");
   }
 
-  const userOrgId = user.organizationId?.toString() || user.organizationId;
-  const adminOrgId = adminUser.organizationId?.toString() || adminUser.organizationId;
-
-  if (userOrgId !== adminOrgId) {
+  if (user.organizationId !== adminUser.organizationId) {
     throw new ApiError(404, "Member not found in this organization");
   }
 
-  const userId_str = user._id?.toString() || user._id;
-  const adminId_str = adminUser._id?.toString() || adminUser.id?.toString() || adminUser._id;
-
-  if (userId_str === adminId_str) {
+  const adminId = adminUser.id;
+  if (user.id === adminId) {
     throw new ApiError(400, "Cannot deactivate your own account");
   }
 
@@ -211,12 +204,10 @@ export const validateInviteToken = async (token: string) => {
     throw new ApiError(401, "Invitation has expired");
   }
 
-  await invite.populate("organizationId");
-
-  const org = invite.organizationId as any;
+  const organization = await organizationRepository.findById(invite.organizationId);
 
   return {
-    organizationName: org?.name || "HireLens",
+    organizationName: organization?.name || "HireLens",
     role: invite.role,
     email: invite.email,
   };

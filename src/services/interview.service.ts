@@ -1,4 +1,5 @@
-import mongoose from "mongoose";
+import { Recommendation, InterviewStatus, ActionType } from "@prisma/client";
+import { prisma } from "../config/prisma.js";
 import ApiError from "../utils/ApiError.js";
 import { getIO } from "../config/socket.js";
 import * as interviewRepository from "../repositories/interview.repository.js";
@@ -10,8 +11,6 @@ import * as notificationService from "./notification.service.js";
 import * as jobRepository from "../repositories/job.repository.js";
 import * as organizationRepository from "../repositories/organization.repository.js";
 import { sendInterviewScheduledEmail } from "./email.service.js";
-import { Recommendation } from "../models/InterviewFeedback.js";
-import { InterviewStatus } from "../models/Interview.js";
 
 interface UserContext {
   id: string;
@@ -29,7 +28,7 @@ export const assignInterviewer = async (
 ) => {
   const candidate = await candidateRepository.findById(candidateId);
 
-  if (!candidate || candidate.organizationId.toString() !== user.organizationId) {
+  if (!candidate || candidate.organizationId !== user.organizationId) {
     throw new ApiError(404, "Candidate not found in your organization");
   }
 
@@ -37,7 +36,7 @@ export const assignInterviewer = async (
 
   if (
     !interviewer ||
-    interviewer.organizationId.toString() !== user.organizationId ||
+    interviewer.organizationId !== user.organizationId ||
     interviewer.role !== "INTERVIEWER"
   ) {
     throw new ApiError(400, "Invalid interviewer");
@@ -53,26 +52,29 @@ export const assignInterviewer = async (
   }
 
   const interview = await interviewRepository.create({
-    organizationId: new mongoose.Types.ObjectId(user.organizationId),
-    candidateId: new mongoose.Types.ObjectId(candidateId),
+    organizationId: user.organizationId,
+    candidateId,
     jobId: candidate.jobId,
-    interviewerId: new mongoose.Types.ObjectId(interviewerId),
+    interviewerId,
     scheduledAt: scheduledAt ? new Date(scheduledAt) : undefined,
   });
 
+  // Fetch the interview with populated relationships
+  const populatedInterview = await interviewRepository.findById(interview.id);
+
   await decisionLogRepository.create({
-    organizationId: new mongoose.Types.ObjectId(user.organizationId),
-    candidateId: new mongoose.Types.ObjectId(candidateId),
+    organizationId: user.organizationId,
+    candidateId,
     jobId: candidate.jobId,
-    actionType: "INTERVIEW_ASSIGNED",
-    performedBy: new mongoose.Types.ObjectId(user.id),
+    actionType: ActionType.INTERVIEW_ASSIGNED,
+    performedById: user.id,
     note: `Interview assigned to ${interviewer.name}`,
   });
 
   const io = getIO();
 
   io.to(`org:${user.organizationId}`).emit("decision:created", {
-    action: "INTERVIEW_ASSIGNED",
+    action: ActionType.INTERVIEW_ASSIGNED,
     candidateId,
     jobId: candidate.jobId,
     performedBy: user.id,
@@ -83,7 +85,7 @@ export const assignInterviewer = async (
   });
 
   io.to(`org:${user.organizationId}`).emit("interview:assigned", {
-    interviewId: interview._id,
+    interviewId: interview.id,
     candidateId,
     jobId: candidate.jobId,
     interviewerId,
@@ -92,7 +94,7 @@ export const assignInterviewer = async (
   });
 
   io.to(`user:${interviewerId}`).emit("interview:assigned", {
-    interviewId: interview._id,
+    interviewId: interview.id,
     candidateId,
     jobId: candidate.jobId,
     interviewerId,
@@ -108,7 +110,7 @@ export const assignInterviewer = async (
     interviewDate: scheduledAt || new Date(),
     organizationId: user.organizationId,
     metadata: {
-      interviewId: interview._id,
+      interviewId: interview.id,
       candidateId,
       jobId: candidate.jobId,
     },
@@ -125,7 +127,7 @@ export const assignInterviewer = async (
     organizationName: organization?.name || "HireLens",
   }).catch((err) => console.error("[Email] Interview scheduled email error:", err));
 
-  return interview;
+  return populatedInterview;
 };
 
 export const submitFeedback = async (
@@ -145,81 +147,91 @@ export const submitFeedback = async (
 ) => {
   const interview = await interviewRepository.findById(interviewId);
 
-  if (!interview || interview.interviewerId.toString() !== user.id) {
+  if (!interview || interview.interviewerId !== user.id) {
     throw new ApiError(403, "Not authorized to submit feedback");
   }
 
-  const feedback = await feedbackRepository.create({
-    interviewId: new mongoose.Types.ObjectId(interviewId),
-    candidateId: interview.candidateId,
-    interviewerId: new mongoose.Types.ObjectId(user.id),
-    rating,
-    strengths,
-    weaknesses,
-    recommendation,
-  });
-
-  interview.status = "COMPLETED";
-  await interview.save();
-
-  await decisionLogRepository.create({
-    organizationId: interview.organizationId,
-    candidateId: interview.candidateId,
-    jobId: interview.jobId,
-    actionType: "FEEDBACK_SUBMITTED",
-    performedBy: new mongoose.Types.ObjectId(user.id),
-    note: `Recommendation: ${recommendation}`,
-  });
-
-  const io = getIO();
-
-  io.to(`org:${interview.organizationId}`).emit("decision:created", {
-    action: "FEEDBACK_SUBMITTED",
-    candidateId: interview.candidateId,
-    jobId: interview.jobId,
-    performedBy: user.id,
-    from: null,
-    to: null,
-    note: `Recommendation: ${recommendation}`,
-    timestamp: new Date(),
-  });
-
-  io.to(`org:${interview.organizationId}`).emit("feedback:submitted", {
-    interviewId,
-    candidateId: interview.candidateId,
-    interviewerId: user.id,
-    rating,
-    strengths,
-    weaknesses,
-    recommendation,
-    submittedAt: new Date(),
-  });
-
-  const recruiters = await userRepository.findByOrganizationAndRole(
-    interview.organizationId,
-    "RECRUITER"
-  );
-
-  const candidate = await candidateRepository.findById(interview.candidateId);
-  const interviewer = await userRepository.findById(user.id);
-
-  for (const recruiter of recruiters) {
-    await notificationService.notifyFeedbackSubmitted({
-      recruiterId: recruiter._id.toString(),
-      candidateName: candidate?.name || "Candidate",
-      interviewerName: interviewer?.name || "An interviewer",
-      organizationId: interview.organizationId.toString(),
-      metadata: {
+  return prisma.$transaction(async (tx) => {
+    const feedback = await feedbackRepository.create(
+      {
         interviewId,
         candidateId: interview.candidateId,
-        feedbackId: feedback._id,
+        interviewerId: user.id,
         rating,
+        strengths,
+        weaknesses,
         recommendation,
       },
-    });
-  }
+      tx
+    );
 
-  return feedback;
+    await tx.interview.update({
+      where: { id: interviewId },
+      data: { status: InterviewStatus.COMPLETED },
+    });
+
+    await decisionLogRepository.create(
+      {
+        organizationId: interview.organizationId,
+        candidateId: interview.candidateId,
+        jobId: interview.jobId,
+        actionType: ActionType.FEEDBACK_SUBMITTED,
+        performedById: user.id,
+        note: `Recommendation: ${recommendation}`,
+      },
+      tx
+    );
+
+    const io = getIO();
+
+    io.to(`org:${interview.organizationId}`).emit("decision:created", {
+      action: ActionType.FEEDBACK_SUBMITTED,
+      candidateId: interview.candidateId,
+      jobId: interview.jobId,
+      performedBy: user.id,
+      from: null,
+      to: null,
+      note: `Recommendation: ${recommendation}`,
+      timestamp: new Date(),
+    });
+
+    io.to(`org:${interview.organizationId}`).emit("feedback:submitted", {
+      interviewId,
+      candidateId: interview.candidateId,
+      interviewerId: user.id,
+      rating,
+      strengths,
+      weaknesses,
+      recommendation,
+      submittedAt: new Date(),
+    });
+
+    const recruiters = await userRepository.findByOrganizationAndRole(
+      interview.organizationId,
+      "RECRUITER"
+    );
+
+    const candidate = await candidateRepository.findById(interview.candidateId, tx);
+    const interviewer = await userRepository.findById(user.id);
+
+    for (const recruiter of recruiters) {
+      await notificationService.notifyFeedbackSubmitted({
+        recruiterId: recruiter.id,
+        candidateName: candidate?.name || "Candidate",
+        interviewerName: interviewer?.name || "An interviewer",
+        organizationId: interview.organizationId,
+        metadata: {
+          interviewId,
+          candidateId: interview.candidateId,
+          feedbackId: feedback.id,
+          rating,
+          recommendation,
+        },
+      });
+    }
+
+    return feedback;
+  });
 };
 
 export const getMyInterviews = async (user: UserContext) => {
@@ -229,14 +241,14 @@ export const getMyInterviews = async (user: UserContext) => {
 export const getInterviewsByJob = async (user: UserContext, jobId: string) => {
   const interviews = await interviewRepository.findByJobId(jobId);
   return interviews.filter(
-    (interview) => interview.organizationId.toString() === user.organizationId
+    (interview) => interview.organizationId === user.organizationId
   );
 };
 
 export const getInterviewFeedback = async (user: UserContext, interviewId: string) => {
   const interview = await interviewRepository.findById(interviewId);
 
-  if (!interview || interview.organizationId.toString() !== user.organizationId) {
+  if (!interview || interview.organizationId !== user.organizationId) {
     throw new ApiError(404, "Interview not found");
   }
 
@@ -263,7 +275,7 @@ export const getInterviewers = async (user: UserContext) => {
   );
 
   return interviewers.map((interviewer) => ({
-    _id: interviewer._id,
+    id: interviewer.id,
     name: interviewer.name,
     email: interviewer.email,
   }));
