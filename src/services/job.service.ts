@@ -69,6 +69,7 @@ export const getOrganizationJobs = async (organizationId: string) => {
       name: job.createdBy?.name,
       email: job.createdBy?.email,
     },
+    candidateCount: (job as any)._count?.candidates || 0,
     createdAt: job.createdAt,
     updatedAt: job.updatedAt,
   }));
