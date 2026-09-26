@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { CandidateStage, Recommendation } from "@prisma/client";
+import { CandidateStage } from "@prisma/client";
 
 export const addCandidateSchema = z.object({
   jobId: z.string().uuid("Invalid job ID format"),
@@ -14,21 +14,6 @@ export const updateStageSchema = z.object({
     message: "Invalid candidate stage",
   }),
   note: z.string().trim().max(500).optional(),
-});
-
-export const assignInterviewSchema = z.object({
-  candidateId: z.string().uuid("Invalid candidate ID format"),
-  interviewerId: z.string().uuid("Invalid interviewer ID format"),
-  scheduledAt: z.coerce.date().optional(),
-});
-
-export const submitFeedbackSchema = z.object({
-  rating: z.number().int().min(1).max(5, "Rating must be between 1 and 5"),
-  strengths: z.string().trim().min(3, "Strengths are required"),
-  weaknesses: z.string().trim().min(3, "Weaknesses are required"),
-  recommendation: z.nativeEnum(Recommendation, {
-    message: "Invalid recommendation value",
-  }),
 });
 
 // Reusable param schemas

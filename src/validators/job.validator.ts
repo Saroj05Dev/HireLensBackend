@@ -9,3 +9,8 @@ export const createJobSchema = z.object({
 });
 
 export const updateJobSchema = createJobSchema.partial();
+
+// Reusable param schema
+export const jobIdParamSchema = z.object({
+    jobId: z.string().uuid("Invalid job ID format"),
+});
