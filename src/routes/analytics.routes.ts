@@ -12,6 +12,11 @@ import {
 
 import auth from "../middlewares/auth.middleware.js";
 import role from "../middlewares/role.middleware.js";
+import { zodValidate } from "../middlewares/zodValidate.middleware.js";
+import {
+  candidateIdParamSchema,
+  jobIdParamSchema,
+} from "../validators/analytics.validator.js";
 
 const router = Router();
 
@@ -70,6 +75,7 @@ router.get(
   "/candidates/:candidateId/time-in-stage",
   auth,
   role("ADMIN", "RECRUITER"),
+  zodValidate(candidateIdParamSchema, "params"),
   getCandidateTimeInStage
 );
 
@@ -80,6 +86,7 @@ router.get(
   "/jobs/:jobId/funnel",
   auth,
   role("ADMIN", "RECRUITER"),
+  zodValidate(jobIdParamSchema, "params"),
   getJobFunnel
 );
 
@@ -87,6 +94,7 @@ router.get(
   "/jobs/:jobId/time-to-hire",
   auth,
   role("ADMIN", "RECRUITER"),
+  zodValidate(jobIdParamSchema, "params"),
   getTimeToHire
 );
 

@@ -57,14 +57,17 @@ export const getCandidatesByJob = async (req: Request, res: Response, next: Next
 
 export const getAllCandidates = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const candidates = await candidateService.getAllCandidates(
+    const result = await candidateService.getAllCandidates(
       req.user as any,
       req.query as any
     );
 
     res.status(200).json({
       success: true,
-      data: candidates,
+      data: {
+        candidates: result.candidates,
+        counts: result.counts,
+      },
       message: "Candidates fetched successfully",
     });
   } catch (error) {

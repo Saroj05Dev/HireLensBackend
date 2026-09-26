@@ -1,6 +1,8 @@
 import { Router } from "express";
 import * as notificationController from "../controllers/notification.controller.js";
 import authMiddleware from "../middlewares/auth.middleware.js";
+import { zodValidate } from "../middlewares/zodValidate.middleware.js";
+import { notificationIdParamSchema } from "../validators/notification.validator.js";
 
 const router = Router();
 
@@ -14,13 +16,13 @@ router.get("/", notificationController.getNotifications);
 router.get("/unread-count", notificationController.getUnreadCount);
 
 // Mark notification as read
-router.patch("/:id/read", notificationController.markAsRead);
+router.patch("/:id/read", zodValidate(notificationIdParamSchema, "params"), notificationController.markAsRead);
 
 // Mark all as read
 router.patch("/read-all", notificationController.markAllAsRead);
 
 // Delete notification
-router.delete("/:id", notificationController.deleteNotification);
+router.delete("/:id", zodValidate(notificationIdParamSchema, "params"), notificationController.deleteNotification);
 
 // Delete all notifications
 router.delete("/", notificationController.deleteAllNotifications);

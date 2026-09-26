@@ -1,6 +1,13 @@
 import { Router } from "express";
 import auth from "../middlewares/auth.middleware.js";
 import role from "../middlewares/role.middleware.js";
+import { zodValidate } from "../middlewares/zodValidate.middleware.js";
+import {
+  assignInterviewSchema,
+  submitFeedbackSchema,
+  interviewIdParamSchema,
+  jobIdParamSchema,
+} from "../validators/interview.validator.js";
 import {
   assignInterviewer,
   submitFeedback,
@@ -42,6 +49,7 @@ router.get(
   "/job/:jobId",
   auth,
   role("RECRUITER"),
+  zodValidate(jobIdParamSchema, "params"),
   getInterviewsByJob
 );
 
@@ -49,6 +57,7 @@ router.get(
 router.get(
   "/:interviewId/feedback",
   auth,
+  zodValidate(interviewIdParamSchema, "params"),
   getInterviewFeedback
 );
 
@@ -57,6 +66,7 @@ router.post(
   "/assign",
   auth,
   role("RECRUITER"),
+  zodValidate(assignInterviewSchema),
   assignInterviewer
 );
 
@@ -65,6 +75,8 @@ router.post(
   "/:interviewId/feedback",
   auth,
   role("INTERVIEWER"),
+  zodValidate(interviewIdParamSchema, "params"),
+  zodValidate(submitFeedbackSchema),
   submitFeedback
 );
 

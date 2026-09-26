@@ -2,6 +2,8 @@ import { Router, Request } from "express";
 import multer, { FileFilterCallback } from "multer";
 import * as profileController from "../controllers/profile.controller.js";
 import authMiddleware from "../middlewares/auth.middleware.js";
+import { zodValidate } from "../middlewares/zodValidate.middleware.js";
+import { updateProfileSchema } from "../validators/profile.validator.js";
 import ApiError from "../utils/ApiError.js";
 
 const router = Router();
@@ -29,7 +31,7 @@ router.use(authMiddleware);
 router.get("/", profileController.getProfile);
 
 // Update profile (name, title)
-router.put("/", profileController.updateProfile);
+router.put("/", zodValidate(updateProfileSchema), profileController.updateProfile);
 
 // Upload avatar
 router.post("/avatar", upload.single("avatar"), profileController.uploadAvatar);

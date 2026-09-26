@@ -6,3 +6,7 @@ dist/
 .claude/
 .windsurf/
 .vscode/
+
+# Scripts and API documentation (local only)
+scripts/
+API_TESTING_GUIDE.md

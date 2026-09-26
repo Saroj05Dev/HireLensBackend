@@ -266,12 +266,44 @@ export const getAllCandidates = async (
 ) => {
   const { stage, jobId } = filters;
 
+  // Get filtered candidates
   const candidates = await candidateRepository.findByOrganizationIdWithFilters(
     user.organizationId,
     { stage, jobId }
   );
 
-  return candidates.map(serializeCandidate);
+  // Get stage counts for ALL candidates (ignoring stage filter)
+  const stageCounts = await prisma.candidate.groupBy({
+    by: ['currentStage'],
+    where: {
+      organizationId: user.organizationId,
+      ...(jobId && { jobId }), // Apply jobId filter if provided
+    },
+    _count: {
+      currentStage: true,
+    },
+  });
+
+  // Transform stage counts into an object
+  const counts: Record<string, number> = {
+    all: 0,
+    APPLIED: 0,
+    SCREENING: 0,
+    INTERVIEW: 0,
+    OFFER: 0,
+    HIRED: 0,
+    REJECTED: 0,
+  };
+
+  stageCounts.forEach((item) => {
+    counts[item.currentStage] = item._count.currentStage;
+    counts.all += item._count.currentStage;
+  });
+
+  return {
+    candidates: candidates.map(serializeCandidate),
+    counts,
+  };
 };
 
 export const getCandidateProfile = async (user: UserContext, candidateId: string) => {

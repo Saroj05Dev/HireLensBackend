@@ -3,6 +3,13 @@ import multer, { FileFilterCallback } from "multer";
 import ApiError from "../utils/ApiError.js";
 import auth from "../middlewares/auth.middleware.js";
 import role from "../middlewares/role.middleware.js";
+import { zodValidate } from "../middlewares/zodValidate.middleware.js";
+import {
+  addCandidateSchema,
+  updateStageSchema,
+  candidateIdParamSchema,
+  jobIdParamSchema,
+} from "../validators/candidate.validator.js";
 import {
   addCandidate,
   parseResume,
@@ -53,6 +60,7 @@ router.post(
   auth,
   role("ADMIN", "RECRUITER"),
   upload.single("resume"),
+  zodValidate(addCandidateSchema),
   addCandidate
 );
 
@@ -68,6 +76,7 @@ router.get(
   "/job/:jobId",
   auth,
   role("ADMIN", "RECRUITER"),
+  zodValidate(jobIdParamSchema, "params"),
   getCandidatesByJob
 );
 
@@ -75,6 +84,7 @@ router.get(
   "/:candidateId",
   auth,
   role("ADMIN", "RECRUITER", "INTERVIEWER"),
+  zodValidate(candidateIdParamSchema, "params"),
   getCandidateProfile
 );
 
@@ -82,6 +92,8 @@ router.patch(
   "/:candidateId/stage",
   auth,
   role("RECRUITER"),
+  zodValidate(candidateIdParamSchema, "params"),
+  zodValidate(updateStageSchema),
   updateCandidateStage
 );
 
@@ -89,6 +101,7 @@ router.patch(
   "/:candidateId/reopen",
   auth,
   role("RECRUITER"),
+  zodValidate(candidateIdParamSchema, "params"),
   reopenCandidate
 );
 
@@ -96,6 +109,7 @@ router.get(
   "/:candidateId/decision-logs",
   auth,
   role("ADMIN", "RECRUITER", "INTERVIEWER"),
+  zodValidate(candidateIdParamSchema, "params"),
   getCandidateDecisionLogs
 );
 
@@ -103,6 +117,7 @@ router.get(
   "/:candidateId/interviews",
   auth,
   role("ADMIN", "RECRUITER", "INTERVIEWER"),
+  zodValidate(candidateIdParamSchema, "params"),
   getInterviewsByCandidate
 );
 
