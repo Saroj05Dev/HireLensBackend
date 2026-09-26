@@ -508,8 +508,11 @@ export const sendOTPEmail = async ({ email, otp, purpose = "SIGNUP" }: OTPEmailP
 
     console.log(`[Email] ${purpose} OTP sent to ${email} (id: ${messageId})`);
     return { success: true, id: messageId };
-  } catch (err: any) {
-    console.error("[Email] Failed to send OTP email:", err.message);
+  }catch (err: any) {
+    console.error("[Email] Detailed Brevo Error:", {
+      status: err.status || err.response?.statusCode,
+      body: err.response?.body || err.response?.text || err.message,
+    });
     return { success: false, error: err.message };
   }
 };
