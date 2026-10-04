@@ -73,18 +73,21 @@ export const register = async (req: Request, res: Response, next: NextFunction) 
     const { accessToken, refreshToken } = result.tokens;
 
     const isProduction = process.env.NODE_ENV === "production";
+    
+    const cookieOptions = {
+      httpOnly: true,
+      sameSite: (isProduction ? "none" : "lax") as "none" | "lax",
+      secure: isProduction,
+      path: "/",
+    };
 
     res.cookie("accessToken", accessToken, {
-      httpOnly: true,
-      sameSite: isProduction ? "none" : "lax",
-      secure: isProduction,
+      ...cookieOptions,
       maxAge: 15 * 60 * 1000, // 15 minutes
     });
 
     res.cookie("refreshToken", refreshToken, {
-      httpOnly: true,
-      sameSite: isProduction ? "none" : "lax",
-      secure: isProduction,
+      ...cookieOptions,
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
     });
 
@@ -106,18 +109,21 @@ export const login = async (req: Request, res: Response, next: NextFunction) => 
     const { user, tokens } = await authService.login(req.body);
 
     const isProduction = process.env.NODE_ENV === "production";
+    
+    const cookieOptions = {
+      httpOnly: true,
+      sameSite: (isProduction ? "none" : "lax") as "none" | "lax",
+      secure: isProduction,
+      path: "/",
+    };
 
     res.cookie("accessToken", tokens.accessToken, {
-      httpOnly: true,
-      sameSite: isProduction ? "none" : "lax",
-      secure: isProduction,
+      ...cookieOptions,
       maxAge: 15 * 60 * 1000, // 15 minutes
     });
 
     res.cookie("refreshToken", tokens.refreshToken, {
-      httpOnly: true,
-      sameSite: isProduction ? "none" : "lax",
-      secure: isProduction,
+      ...cookieOptions,
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
     });
 
@@ -138,6 +144,7 @@ export const logout = async (req: Request, res: Response, next: NextFunction) =>
     httpOnly: true,
     sameSite: (isProduction ? "none" : "lax") as "none" | "lax",
     secure: isProduction,
+    path: "/",
   };
 
   res.clearCookie("accessToken", cookieOptions);
@@ -154,11 +161,16 @@ export const refresh = async (req: Request, res: Response, next: NextFunction) =
     const token = await authService.refresh(req.cookies);
 
     const isProduction = process.env.NODE_ENV === "production";
+    
+    const cookieOptions = {
+      httpOnly: true,
+      sameSite: (isProduction ? "none" : "lax") as "none" | "lax",
+      secure: isProduction,
+      path: "/",
+    };
 
     res.cookie("accessToken", token.accessToken, {
-      httpOnly: true,
-      sameSite: isProduction ? "none" : "lax",
-      secure: isProduction,
+      ...cookieOptions,
       maxAge: 15 * 60 * 1000, // 15 minutes
     });
 
@@ -217,18 +229,21 @@ export const acceptInvite = async (req: Request, res: Response, next: NextFuncti
     const { accessToken, refreshToken } = result.tokens;
 
     const isProduction = process.env.NODE_ENV === "production";
+    
+    const cookieOptions = {
+      httpOnly: true,
+      sameSite: (isProduction ? "none" : "lax") as "none" | "lax",
+      secure: isProduction,
+      path: "/",
+    };
 
     res.cookie("accessToken", accessToken, {
-      httpOnly: true,
-      sameSite: isProduction ? "none" : "lax",
-      secure: isProduction,
+      ...cookieOptions,
       maxAge: 15 * 60 * 1000, // 15 minutes
     });
 
     res.cookie("refreshToken", refreshToken, {
-      httpOnly: true,
-      sameSite: isProduction ? "none" : "lax",
-      secure: isProduction,
+      ...cookieOptions,
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
     });
 
