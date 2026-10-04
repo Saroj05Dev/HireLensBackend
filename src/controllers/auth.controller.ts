@@ -74,11 +74,13 @@ export const register = async (req: Request, res: Response, next: NextFunction) 
 
     const isProduction = process.env.NODE_ENV === "production";
     
+    // Use more permissive settings for better incognito compatibility
     const cookieOptions = {
       httpOnly: true,
-      sameSite: (isProduction ? "none" : "lax") as "none" | "lax",
-      secure: isProduction,
+      sameSite: "lax" as "lax", // Use lax instead of none for better compatibility
+      secure: isProduction, // Only secure in production (HTTPS)
       path: "/",
+      domain: isProduction ? ".onrender.com" : undefined, // Set domain for cross-subdomain sharing
     };
 
     res.cookie("accessToken", accessToken, {
@@ -110,12 +112,16 @@ export const login = async (req: Request, res: Response, next: NextFunction) => 
 
     const isProduction = process.env.NODE_ENV === "production";
     
+    // For cross-origin requests (different domains), we need sameSite: "none"
     const cookieOptions = {
       httpOnly: true,
       sameSite: (isProduction ? "none" : "lax") as "none" | "lax",
-      secure: isProduction,
+      secure: isProduction, // Required when sameSite is "none"
       path: "/",
     };
+
+    console.log('Setting cookies with options:', cookieOptions);
+    console.log('Request headers:', req.headers);
 
     res.cookie("accessToken", tokens.accessToken, {
       ...cookieOptions,
@@ -140,11 +146,13 @@ export const login = async (req: Request, res: Response, next: NextFunction) => 
 export const logout = async (req: Request, res: Response, next: NextFunction) => {
   const isProduction = process.env.NODE_ENV === "production";
 
+  // Use more permissive settings for better incognito compatibility
   const cookieOptions = {
     httpOnly: true,
-    sameSite: (isProduction ? "none" : "lax") as "none" | "lax",
-    secure: isProduction,
+    sameSite: "lax" as "lax", // Use lax instead of none for better compatibility
+    secure: isProduction, // Only secure in production (HTTPS)
     path: "/",
+    domain: isProduction ? ".onrender.com" : undefined, // Set domain for cross-subdomain sharing
   };
 
   res.clearCookie("accessToken", cookieOptions);
@@ -162,11 +170,13 @@ export const refresh = async (req: Request, res: Response, next: NextFunction) =
 
     const isProduction = process.env.NODE_ENV === "production";
     
+    // Use more permissive settings for better incognito compatibility
     const cookieOptions = {
       httpOnly: true,
-      sameSite: (isProduction ? "none" : "lax") as "none" | "lax",
-      secure: isProduction,
+      sameSite: "lax" as "lax", // Use lax instead of none for better compatibility
+      secure: isProduction, // Only secure in production (HTTPS)
       path: "/",
+      domain: isProduction ? ".onrender.com" : undefined, // Set domain for cross-subdomain sharing
     };
 
     res.cookie("accessToken", token.accessToken, {
@@ -230,11 +240,13 @@ export const acceptInvite = async (req: Request, res: Response, next: NextFuncti
 
     const isProduction = process.env.NODE_ENV === "production";
     
+    // Use more permissive settings for better incognito compatibility
     const cookieOptions = {
       httpOnly: true,
-      sameSite: (isProduction ? "none" : "lax") as "none" | "lax",
-      secure: isProduction,
+      sameSite: "lax" as "lax", // Use lax instead of none for better compatibility
+      secure: isProduction, // Only secure in production (HTTPS)
       path: "/",
+      domain: isProduction ? ".onrender.com" : undefined, // Set domain for cross-subdomain sharing
     };
 
     res.cookie("accessToken", accessToken, {

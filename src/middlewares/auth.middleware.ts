@@ -13,6 +13,10 @@ const authMiddleware = (req: Request, res: Response, next: NextFunction): void =
     try {
         const token = req.cookies?.accessToken;
 
+        console.log('Auth middleware - cookies:', req.cookies);
+        console.log('Auth middleware - accessToken:', token ? 'present' : 'missing');
+        console.log('Auth middleware - user-agent:', req.headers['user-agent']);
+
         if (!token) {
             throw new ApiError(401, "Unauthorized request");
         }
@@ -31,9 +35,11 @@ const authMiddleware = (req: Request, res: Response, next: NextFunction): void =
             organizationId: decoded.organizationId
         };
 
+        console.log('Auth middleware - user authenticated:', req.user.id);
         next();
 
     } catch (error: any) {
+        console.log('Auth middleware - error:', error.message);
         if(error.name === "TokenExpiredError") {
             next(new ApiError(401, "Session expired. Please log in again."));
         } else {
