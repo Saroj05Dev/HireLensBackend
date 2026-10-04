@@ -133,9 +133,16 @@ export const login = async (req: Request, res: Response, next: NextFunction) => 
     console.log("Cookie options:", cookieOptions);
     console.log("Setting cookies for user:", user.id);
 
+    // Also return tokens in response for fallback in incognito mode
     return res.status(200).json({
       success: true,
-      data: user,
+      data: {
+        user,
+        tokens: {
+          accessToken: tokens.accessToken,
+          refreshToken: tokens.refreshToken,
+        },
+      },
       message: "Login successful",
     });
   } catch (error) {
@@ -165,14 +172,18 @@ export const logout = async (req: Request, res: Response, next: NextFunction) =>
 
 export const refresh = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const token = await authService.refresh(req.cookies);
+    // First try cookies, then check request body for fallback
+    const cookiesInput = req.cookies;
+    const refreshTokenFromBody = req.body?.refreshToken;
+    
+    const token = await authService.refresh(cookiesInput, refreshTokenFromBody);
 
     const isProduction = process.env.NODE_ENV === "production";
     
-    // Temporarily use lax for all environments to test incognito mode
+    // For cross-origin requests (different domains), we need sameSite: "none"
     const cookieOptions = {
       httpOnly: true,
-      sameSite: "lax" as "lax",
+      sameSite: (isProduction ? "none" : "lax") as "none" | "lax",
       secure: isProduction,
       path: "/",
     };
@@ -184,6 +195,9 @@ export const refresh = async (req: Request, res: Response, next: NextFunction) =
 
     return res.status(200).json({
       success: true,
+      data: {
+        accessToken: token.accessToken,
+      },
       message: "Token refreshed successfully",
     });
   } catch (error) {

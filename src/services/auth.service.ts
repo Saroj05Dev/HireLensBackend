@@ -244,8 +244,8 @@ export const login = async ({ email, password }: { email?: string; password?: st
   };
 };
 
-export const refresh = async (cookies: Record<string, any>) => {
-  const refreshToken = cookies?.refreshToken;
+export const refresh = async (cookies: Record<string, any>, refreshTokenFallback?: string) => {
+  const refreshToken = cookies?.refreshToken || refreshTokenFallback;
 
   if (!refreshToken) {
     throw new ApiError(401, "Refresh token not found");

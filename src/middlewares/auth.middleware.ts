@@ -11,7 +11,16 @@ interface DecodedToken {
 
 const authMiddleware = (req: Request, res: Response, next: NextFunction): void => {
     try {
-        const token = req.cookies?.accessToken;
+        // First try to get token from cookies (preferred method)
+        let token = req.cookies?.accessToken;
+        
+        // If no token in cookies, check Authorization header as fallback
+        if (!token && req.headers.authorization) {
+            const authHeader = req.headers.authorization;
+            if (authHeader.startsWith("Bearer ")) {
+                token = authHeader.substring(7);
+            }
+        }
 
         if (!token) {
             throw new ApiError(401, "Unauthorized request");
