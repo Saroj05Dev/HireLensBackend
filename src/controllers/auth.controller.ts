@@ -74,9 +74,10 @@ export const register = async (req: Request, res: Response, next: NextFunction) 
 
     const isProduction = process.env.NODE_ENV === "production";
     
+    // Temporarily use lax for all environments to test incognito mode
     const cookieOptions = {
       httpOnly: true,
-      sameSite: (isProduction ? "none" : "lax") as "none" | "lax",
+      sameSite: "lax" as "lax",
       secure: isProduction,
       path: "/",
     };
@@ -110,11 +111,11 @@ export const login = async (req: Request, res: Response, next: NextFunction) => 
 
     const isProduction = process.env.NODE_ENV === "production";
     
-    // For cross-origin requests (different domains), we need sameSite: "none"
+    // Temporarily use lax for all environments to test incognito mode
     const cookieOptions = {
       httpOnly: true,
-      sameSite: (isProduction ? "none" : "lax") as "none" | "lax",
-      secure: isProduction, // Required when sameSite is "none"
+      sameSite: "lax" as "lax",
+      secure: isProduction,
       path: "/",
     };
 
@@ -141,9 +142,10 @@ export const login = async (req: Request, res: Response, next: NextFunction) => 
 export const logout = async (req: Request, res: Response, next: NextFunction) => {
   const isProduction = process.env.NODE_ENV === "production";
 
+  // Temporarily use lax for all environments to test incognito mode
   const cookieOptions = {
     httpOnly: true,
-    sameSite: (isProduction ? "none" : "lax") as "none" | "lax",
+    sameSite: "lax" as "lax",
     secure: isProduction,
     path: "/",
   };
@@ -163,9 +165,10 @@ export const refresh = async (req: Request, res: Response, next: NextFunction) =
 
     const isProduction = process.env.NODE_ENV === "production";
     
+    // Temporarily use lax for all environments to test incognito mode
     const cookieOptions = {
       httpOnly: true,
-      sameSite: (isProduction ? "none" : "lax") as "none" | "lax",
+      sameSite: "lax" as "lax",
       secure: isProduction,
       path: "/",
     };
@@ -231,9 +234,10 @@ export const acceptInvite = async (req: Request, res: Response, next: NextFuncti
 
     const isProduction = process.env.NODE_ENV === "production";
     
+    // Temporarily use lax for all environments to test incognito mode
     const cookieOptions = {
       httpOnly: true,
-      sameSite: (isProduction ? "none" : "lax") as "none" | "lax",
+      sameSite: "lax" as "lax",
       secure: isProduction,
       path: "/",
     };
