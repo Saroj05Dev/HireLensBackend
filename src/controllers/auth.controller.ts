@@ -118,9 +118,6 @@ export const login = async (req: Request, res: Response, next: NextFunction) => 
       path: "/",
     };
 
-    console.log('Setting cookies with options:', cookieOptions);
-    console.log('Request headers:', req.headers);
-
     res.cookie("accessToken", tokens.accessToken, {
       ...cookieOptions,
       maxAge: 15 * 60 * 1000, // 15 minutes
