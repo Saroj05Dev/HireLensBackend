@@ -12,6 +12,7 @@ import {
   sendPasswordResetOTP,
   verifyPasswordResetOTP,
   resetPassword,
+  debugCookies,
 } from "../controllers/auth.controller.js";
 import authMiddleware from "../middlewares/auth.middleware.js";
 import { zodValidate } from "../middlewares/zodValidate.middleware.js";
@@ -38,5 +39,6 @@ router.post("/refresh", refresh);
 router.get("/me", authMiddleware, fetchMe);
 router.get("/invites/:token/validate", validateInviteToken);
 router.post("/accept-invite", zodValidate(acceptInviteSchema), acceptInvite);
+router.get("/debug-cookies", debugCookies);
 
 export default router;

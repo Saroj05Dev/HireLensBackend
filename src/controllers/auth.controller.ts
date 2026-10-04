@@ -111,11 +111,11 @@ export const login = async (req: Request, res: Response, next: NextFunction) => 
 
     const isProduction = process.env.NODE_ENV === "production";
     
-    // Temporarily use lax for all environments to test incognito mode
+    // For cross-origin requests (different domains), we need sameSite: "none"
     const cookieOptions = {
       httpOnly: true,
-      sameSite: "lax" as "lax",
-      secure: isProduction,
+      sameSite: (isProduction ? "none" : "lax") as "none" | "lax",
+      secure: isProduction, // Required when sameSite is "none"
       path: "/",
     };
 
@@ -128,6 +128,10 @@ export const login = async (req: Request, res: Response, next: NextFunction) => 
       ...cookieOptions,
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
     });
+
+    // For debugging - log the cookie settings
+    console.log("Cookie options:", cookieOptions);
+    console.log("Setting cookies for user:", user.id);
 
     return res.status(200).json({
       success: true,
@@ -256,6 +260,29 @@ export const acceptInvite = async (req: Request, res: Response, next: NextFuncti
       success: true,
       data: result.user,
       message: "Invitation accepted successfully",
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+export const debugCookies = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    console.log("Debug cookies endpoint called");
+    console.log("Headers:", req.headers);
+    console.log("Cookies received:", req.cookies);
+    
+    return res.status(200).json({
+      success: true,
+      data: {
+        cookies: req.cookies,
+        headers: {
+          cookie: req.headers.cookie,
+          userAgent: req.headers["user-agent"],
+          origin: req.headers.origin,
+        },
+        environment: process.env.NODE_ENV,
+      },
+      message: "Cookie debug info",
     });
   } catch (error) {
     next(error);
