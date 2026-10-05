@@ -73,11 +73,11 @@ export const register = async (req: Request, res: Response, next: NextFunction) 
     const { accessToken, refreshToken } = result.tokens;
 
     const isProduction = process.env.NODE_ENV === "production";
-    
-    // Temporarily use lax for all environments to test incognito mode
+
+    // Same cookie config as login — sameSite: "none" for cross-origin production
     const cookieOptions = {
       httpOnly: true,
-      sameSite: "lax" as "lax",
+      sameSite: (isProduction ? "none" : "lax") as "none" | "lax",
       secure: isProduction,
       path: "/",
     };
@@ -92,11 +92,16 @@ export const register = async (req: Request, res: Response, next: NextFunction) 
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
     });
 
+    // Return tokens in body too — same fallback pattern as login (needed for incognito)
     return res.status(201).json({
       success: true,
       data: {
         user: result.user,
         organization: result.organization,
+        tokens: {
+          accessToken,
+          refreshToken,
+        },
       },
       message: "Organization and admin user created successfully",
     });

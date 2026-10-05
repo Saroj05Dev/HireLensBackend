@@ -203,7 +203,11 @@ export const register = async ({
     return {
       user: {
         id: user.id,
+        name: user.name,
+        email: user.email,
         role: user.role,
+        organizationId: user.organizationId,
+        organizationName: organizationName, // the org name we just created
       },
       organization: {
         id: organization.id,
