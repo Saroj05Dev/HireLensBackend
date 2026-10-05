@@ -9,6 +9,7 @@ import * as inviteRepository from "../repositories/invite.repository.js";
 import * as otpRepository from "../repositories/otp.repository.js";
 import { generateToken, AuthTokens } from "../utils/tokenService.js";
 import { sendOTPEmail } from "./email.service.js";
+import { getIO } from "../config/socket.js";
 import ApiError from "../utils/ApiError.js";
 
 const generateOTP = (): string => {
@@ -337,18 +338,40 @@ export const acceptInvite = async ({
 
   await inviteRepository.markAccepted(invite.id);
 
+  // Fetch org name so the frontend can seed the profile immediately
+  const organization = await organizationRepository.findById(invite.organizationId);
+
   const tokens = generateToken({
     userId: user.id,
     role: user.role,
     organizationId: user.organizationId,
   });
 
+  // Notify all admins in the org room so TeamPage updates in real-time
+  try {
+    const io = getIO();
+    io.to(`org:${invite.organizationId}`).emit("invite:accepted", {
+      userId: user.id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      organizationId: user.organizationId,
+      isActive: user.isActive,
+      createdAt: user.createdAt,
+    });
+  } catch {
+    // Socket not critical — log and continue
+    console.warn("[Socket] Could not emit invite:accepted");
+  }
+
   return {
     user: {
       id: user.id,
+      name: user.name,
       email: user.email,
       role: user.role,
-      name: user.name,
+      organizationId: user.organizationId,
+      organizationName: organization?.name ?? null,
     },
     tokens,
   };

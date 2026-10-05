@@ -256,11 +256,11 @@ export const acceptInvite = async (req: Request, res: Response, next: NextFuncti
     const { accessToken, refreshToken } = result.tokens;
 
     const isProduction = process.env.NODE_ENV === "production";
-    
-    // Temporarily use lax for all environments to test incognito mode
+
+    // Same cookie config as login/register
     const cookieOptions = {
       httpOnly: true,
-      sameSite: "lax" as "lax",
+      sameSite: (isProduction ? "none" : "lax") as "none" | "lax",
       secure: isProduction,
       path: "/",
     };
@@ -275,9 +275,16 @@ export const acceptInvite = async (req: Request, res: Response, next: NextFuncti
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
     });
 
+    // Return tokens in body — same fallback pattern as login/register
     return res.status(200).json({
       success: true,
-      data: result.user,
+      data: {
+        user: result.user,
+        tokens: {
+          accessToken,
+          refreshToken,
+        },
+      },
       message: "Invitation accepted successfully",
     });
   } catch (error) {
