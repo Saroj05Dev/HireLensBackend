@@ -239,11 +239,20 @@ export const login = async ({ email, password }: { email?: string; password?: st
     organizationId: user.organizationId,
   });
 
+  let organizationName: string | null = null;
+  if (user.organizationId) {
+    const organization = await organizationRepository.findById(user.organizationId);
+    organizationName = organization?.name || null;
+  }
+
   return {
     user: {
       id: user.id,
+      name: user.name,
+      email: user.email,
       role: user.role,
       organizationId: user.organizationId,
+      organizationName,
     },
     tokens,
   };
