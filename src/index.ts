@@ -8,6 +8,7 @@ import { SERVER_CONFIG } from "./config/server.config.js";
 import connectDB from "./config/db.config.js";
 import initSocket from "./config/socket.js";
 import { handleDatabaseError } from "./utils/errorHandler.js";
+import { connectRedis } from "./config/redis.js";
 
 import authRoutes from "./routes/auth.routes.js";
 import jobRoutes from "./routes/job.routes.js";
@@ -146,8 +147,17 @@ app.use((err: any, req: Request, res: Response, next: NextFunction) => {
   });
 });
 
-// Start the server and connect to the database
-server.listen(SERVER_CONFIG.PORT, async () => {
-  console.log(`Server is running on port ${SERVER_CONFIG.PORT}`);
-  await connectDB();
-});
+async function startServer() {
+  try {
+    await Promise.all([connectDB(), connectRedis()]);
+
+    server.listen(SERVER_CONFIG.PORT, () => {
+      console.log(`Server is running on port ${SERVER_CONFIG.PORT}`);
+    });
+  } catch (error) {
+    console.error("Failed to start server:", error);
+    process.exit(1); // Exit the process with an error code
+  }
+}
+
+startServer();

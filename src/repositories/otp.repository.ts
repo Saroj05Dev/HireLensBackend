@@ -1,5 +1,63 @@
-import { OTP, OtpPurpose, Prisma } from "@prisma/client";
-import { prisma } from "../config/prisma.js";
+import crypto from "crypto";
+import { redis } from "../config/redis.js";
+
+type OtpPurpose = "SIGNUP" | "PASSWORD_RESET";
+
+const OTP_TTL_SECONDS = 10 * 60;
+const VERIFIED_OTP_TTL_SECONDS = 15 * 60;
+const OTP_SEND_LIMIT = 3;
+const OTP_VERIFY_LIMIT = 5;
+const OTP_RATE_LIMIT_TTL_SECONDS = 10 * 60;
+
+const normalizeEmail = (email: string): string => {
+  return email.toLowerCase().trim();
+};
+
+const emailHash = (email: string): string => {
+  return crypto
+    .createHash("sha256")
+    .update(normalizeEmail(email))
+    .digest("hex");
+};
+
+const pendingOtpKey = (email: string, purpose: OtpPurpose): string => {
+  return `otp:${purpose}:${emailHash(email)}`;
+};
+
+const verifiedOtpKey = (email: string, purpose: OtpPurpose): string => {
+  return `otp:verified:${purpose}:${emailHash(email)}`;
+};
+
+const rateLimitKey = (
+  email: string,
+  purpose: OtpPurpose,
+  operation: "send" | "verify"
+): string => {
+  return `otp:rate-limit:${operation}:${purpose}:${emailHash(email)}`;
+};
+
+const consumeRateLimit = async (
+  key: string,
+  limit: number
+): Promise<boolean> => {
+  const result = await redis.eval(
+    `
+      local count = redis.call("INCR", KEYS[1])
+
+      if count == 1 then
+        redis.call("EXPIRE", KEYS[1], ARGV[1])
+      end
+
+      return count
+    `,
+    {
+      keys: [key],
+      arguments: [OTP_RATE_LIMIT_TTL_SECONDS.toString()],
+    }
+  );
+
+  return Number(result) <= limit;
+};
 
 export interface CreateOtpParams {
   email: string;
@@ -7,54 +65,66 @@ export interface CreateOtpParams {
   purpose?: OtpPurpose;
 }
 
-/**
- * Create a new OTP record
- */
-export const create = async (
-  { email, otp, purpose = OtpPurpose.SIGNUP }: CreateOtpParams,
-  tx?: Prisma.TransactionClient
-): Promise<OTP> => {
-  const db = tx || prisma;
-  return db.oTP.create({
-    data: {
-      email: email.toLowerCase().trim(),
-      otp,
-      purpose,
-      expiresAt: new Date(Date.now() + 10 * 60 * 1000), // 10 minutes default
-    },
+export const create = async ({
+  email,
+  otp,
+  purpose = "SIGNUP",
+}: CreateOtpParams): Promise<void> => {
+  await redis.set(pendingOtpKey(email, purpose), otp, {
+    EX: OTP_TTL_SECONDS,
   });
 };
 
-/**
- * Find the most recent valid OTP for an email and purpose
- */
-export const findValidOTP = async (
+export const verify = async (
   email: string,
-  purpose: OtpPurpose = OtpPurpose.SIGNUP
-): Promise<OTP | null> => {
-  return prisma.oTP.findFirst({
-    where: {
-      email: email.toLowerCase().trim(),
-      purpose,
-      isVerified: false,
-      expiresAt: { gt: new Date() },
-    },
-    orderBy: { createdAt: "desc" },
-  });
+  otp: string,
+  purpose: OtpPurpose = "SIGNUP"
+): Promise<boolean> => {
+  const key = pendingOtpKey(email, purpose);
+
+  const result = await redis.eval(
+    `
+      local storedOtp = redis.call("GET", KEYS[1])
+
+      if storedOtp == ARGV[1] then
+        redis.call("DEL", KEYS[1])
+        return 1
+      end
+
+      return 0
+    `,
+    {
+      keys: [key],
+      arguments: [otp],
+    }
+  );
+
+  const isValid = result === 1;
+
+  if (isValid) {
+    await redis.set(verifiedOtpKey(email, purpose), "1", {
+      EX: VERIFIED_OTP_TTL_SECONDS,
+    });
+  }
+
+  return isValid;
 };
 
-/**
- * Mark OTP as verified
- */
-export const markVerified = async (
-  otpId: string,
-  tx?: Prisma.TransactionClient
-): Promise<OTP | null> => {
-  const db = tx || prisma;
-  return db.oTP.update({
-    where: { id: otpId },
-    data: { isVerified: true },
-  });
+export const consumeSendAttempt = async (
+  email: string,
+  purpose: OtpPurpose = "SIGNUP"
+): Promise<boolean> => {
+  return consumeRateLimit(rateLimitKey(email, purpose, "send"), OTP_SEND_LIMIT);
+};
+
+export const consumeVerifyAttempt = async (
+  email: string,
+  purpose: OtpPurpose = "SIGNUP"
+): Promise<boolean> => {
+  return consumeRateLimit(
+    rateLimitKey(email, purpose, "verify"),
+    OTP_VERIFY_LIMIT
+  );
 };
 
 /**
@@ -62,16 +132,12 @@ export const markVerified = async (
  */
 export const deleteByEmail = async (
   email: string,
-  purpose: OtpPurpose = OtpPurpose.SIGNUP,
-  tx?: Prisma.TransactionClient
-): Promise<Prisma.BatchPayload> => {
-  const db = tx || prisma;
-  return db.oTP.deleteMany({
-    where: {
-      email: email.toLowerCase().trim(),
-      purpose,
-    },
-  });
+  purpose: OtpPurpose = "SIGNUP"
+): Promise<void> => {
+  await redis.del([
+    pendingOtpKey(email, purpose),
+    verifiedOtpKey(email, purpose),
+  ]);
 };
 
 /**
@@ -79,17 +145,8 @@ export const deleteByEmail = async (
  */
 export const hasRecentVerifiedOTP = async (
   email: string,
-  purpose: OtpPurpose = OtpPurpose.SIGNUP
+  purpose: OtpPurpose = "SIGNUP"
 ): Promise<boolean> => {
-  const fifteenMinutesAgo = new Date(Date.now() - 15 * 60 * 1000);
-  const verifiedOTP = await prisma.oTP.findFirst({
-    where: {
-      email: email.toLowerCase().trim(),
-      purpose,
-      isVerified: true,
-      createdAt: { gte: fifteenMinutesAgo },
-    },
-  });
-
-  return Boolean(verifiedOTP);
+  const result = await redis.exists(verifiedOtpKey(email, purpose));
+  return result === 1;
 };

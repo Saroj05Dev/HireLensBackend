@@ -58,11 +58,6 @@ enum NotificationType {
   CANDIDATE_ADDED
 }
 
-enum OtpPurpose {
-  SIGNUP
-  PASSWORD_RESET
-}
-
 enum ActionType {
   STAGE_CHANGE
   INTERVIEW_ASSIGNED
@@ -293,19 +288,4 @@ model Notification {
   @@index([isRead])
   @@index([userId, isRead, createdAt(sort: Desc)])
   @@map("notifications")
-}
-
-model OTP {
-  id         String     @id @default(uuid())
-  email      String
-  otp        String
-  purpose    OtpPurpose @default(SIGNUP)
-  isVerified Boolean    @default(false)
-  expiresAt  DateTime
-  createdAt  DateTime   @default(now())
-  updatedAt  DateTime   @updatedAt
-
-  @@index([email, purpose])
-  @@index([expiresAt])
-  @@map("otps")
 }

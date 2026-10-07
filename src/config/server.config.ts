@@ -10,6 +10,7 @@ interface ServerConfig {
   FRONTEND_URL: string;
   BREVO_API_KEY: string | undefined;
   EMAIL_FROM: string;
+  REDIS_URL: string | undefined;
 }
 
 export const SERVER_CONFIG: ServerConfig = {
@@ -20,4 +21,5 @@ export const SERVER_CONFIG: ServerConfig = {
   FRONTEND_URL: process.env.FRONTEND_URL || "http://localhost:5173",
   BREVO_API_KEY: process.env.BREVO_API_KEY || "",
   EMAIL_FROM: process.env.EMAIL_FROM || "noreply@hirelens.app",
+  REDIS_URL: process.env.REDIS_URL || "redis://localhost:6379",
 };
