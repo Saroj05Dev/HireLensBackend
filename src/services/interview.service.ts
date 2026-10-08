@@ -10,7 +10,7 @@ import * as decisionLogRepository from "../repositories/decisionLog.repository.j
 import * as notificationService from "./notification.service.js";
 import * as jobRepository from "../repositories/job.repository.js";
 import * as organizationRepository from "../repositories/organization.repository.js";
-import { sendInterviewScheduledEmail } from "./email.service.js";
+import { queueInterviewScheduledEmail } from "../queues/email.producer.js";
 
 interface UserContext {
   id: string;
@@ -118,14 +118,14 @@ export const assignInterviewer = async (
 
   const organization = await organizationRepository.findById(user.organizationId);
 
-  sendInterviewScheduledEmail({
+  await queueInterviewScheduledEmail({
     interviewerEmail: interviewer.email,
     interviewerName: interviewer.name || "Interviewer",
     candidateName: candidate.name,
     jobTitle: job?.title || "Unknown Position",
     scheduledAt: scheduledAt || new Date(),
     organizationName: organization?.name || "HireLens",
-  }).catch((err) => console.error("[Email] Interview scheduled email error:", err));
+  });
 
   return populatedInterview;
 };

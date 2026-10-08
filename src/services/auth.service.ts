@@ -8,7 +8,7 @@ import * as userRepository from "../repositories/user.repository.js";
 import * as inviteRepository from "../repositories/invite.repository.js";
 import * as otpRepository from "../repositories/otp.repository.js";
 import { generateToken, AuthTokens } from "../utils/tokenService.js";
-import { sendOTPEmail } from "./email.service.js";
+import { queueOtpEmail } from "../queues/email.producer.js";
 import ApiError from "../utils/ApiError.js";
 
 const generateOTP = (): string => {
@@ -41,11 +41,7 @@ export const sendSignupOTP = async ({ email }: { email: string }) => {
     purpose: "SIGNUP",
   });
 
-  const emailResult = await sendOTPEmail({ email, otp });
-
-  if (!emailResult.success) {
-    throw new ApiError(500, "Failed to send OTP email");
-  }
+  await queueOtpEmail({ email, otp, purpose: "SIGNUP" });
 
   return {
     message: "OTP sent successfully",
@@ -111,11 +107,7 @@ export const sendPasswordResetOTP = async ({ email }: { email: string }) => {
     purpose: "PASSWORD_RESET",
   });
 
-  const emailResult = await sendOTPEmail({ email, otp, purpose: "PASSWORD_RESET" });
-
-  if (!emailResult.success) {
-    throw new ApiError(500, "Failed to send password reset email");
-  }
+  await queueOtpEmail({ email, otp, purpose: "PASSWORD_RESET" });
 
   return {
     message: "Password reset code sent successfully",

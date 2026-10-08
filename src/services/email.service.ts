@@ -71,7 +71,7 @@ const wrap = (headerBg: string, headerContent: string, bodyContent: string): str
 </body>
 </html>`;
 
-interface InviteEmailParams {
+export interface InviteEmailParams {
   email: string;
   role: "RECRUITER" | "INTERVIEWER" | string;
   organizationName: string;
@@ -413,7 +413,7 @@ const buildStageChangeHtml = ({
   );
 };
 
-interface OTPEmailParams {
+export interface OTPEmailParams {
   email: string;
   otp: string;
   purpose?: "SIGNUP" | "PASSWORD_RESET" | string;
@@ -549,7 +549,7 @@ export const sendInviteEmail = async ({
   }
 };
 
-interface InterviewScheduleParams {
+export interface InterviewScheduleParams {
   interviewerEmail: string;
   interviewerName: string;
   candidateName: string;
@@ -597,7 +597,7 @@ export const sendInterviewScheduledEmail = async ({
   }
 };
 
-interface SendStageChangeEmailParams {
+export interface SendStageChangeEmailParams {
   candidateEmail?: string;
   candidateName: string;
   jobTitle: string;

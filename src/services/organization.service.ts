@@ -7,7 +7,7 @@ import ApiError from "../utils/ApiError.js";
 import * as userRepository from "../repositories/user.repository.js";
 import * as inviteRepository from "../repositories/invite.repository.js";
 import * as organizationRepository from "../repositories/organization.repository.js";
-import { sendInviteEmail } from "./email.service.js";
+import { queueInviteEmail } from "../queues/email.producer.js";
 
 interface AdminUserContext {
   id: string;
@@ -57,20 +57,13 @@ export const inviteUser = async (
   const organization = await organizationRepository.findById(adminUser.organizationId);
   const organizationName = organization?.name || "HireLens";
 
-  console.log(`[Invite] Attempting to send email to ${email} for org ${organizationName}`);
-  sendInviteEmail({
+  await queueInviteEmail({
     email,
     role: normalizedRole,
     organizationName,
     inviteUrl,
     expiresAt,
-  })
-    .then((result) => {
-      console.log(`[Invite] Email send result:`, result);
-    })
-    .catch((err) => {
-      console.error("[Invite] Email send error:", err);
-    });
+  });
 
   return {
     invite: {
