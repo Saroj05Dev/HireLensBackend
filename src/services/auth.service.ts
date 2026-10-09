@@ -8,7 +8,7 @@ import * as userRepository from "../repositories/user.repository.js";
 import * as inviteRepository from "../repositories/invite.repository.js";
 import * as otpRepository from "../repositories/otp.repository.js";
 import { generateToken, AuthTokens } from "../utils/tokenService.js";
-import { queueOtpEmail } from "../queues/email.producer.js";
+import { sendOTPEmail } from "./email.service.js";
 import { getIO } from "../config/socket.js";
 import ApiError from "../utils/ApiError.js";
 
@@ -42,7 +42,10 @@ export const sendSignupOTP = async ({ email }: { email: string }) => {
     purpose: "SIGNUP",
   });
 
-  await queueOtpEmail({ email, otp, purpose: "SIGNUP" });
+  const emailResult = await sendOTPEmail({ email, otp, purpose: "SIGNUP" });
+  if (!emailResult.success) {
+    throw new ApiError(502, "Unable to send OTP email. Please try again later.");
+  }
 
   return {
     message: "OTP sent successfully",
@@ -108,7 +111,14 @@ export const sendPasswordResetOTP = async ({ email }: { email: string }) => {
     purpose: "PASSWORD_RESET",
   });
 
-  await queueOtpEmail({ email, otp, purpose: "PASSWORD_RESET" });
+  const emailResult = await sendOTPEmail({
+    email,
+    otp,
+    purpose: "PASSWORD_RESET",
+  });
+  if (!emailResult.success) {
+    throw new ApiError(502, "Unable to send password reset email. Please try again later.");
+  }
 
   return {
     message: "Password reset code sent successfully",

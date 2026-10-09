@@ -10,7 +10,7 @@ import * as decisionLogRepository from "../repositories/decisionLog.repository.j
 import * as notificationService from "./notification.service.js";
 import * as jobRepository from "../repositories/job.repository.js";
 import * as organizationRepository from "../repositories/organization.repository.js";
-import { queueInterviewScheduledEmail } from "../queues/email.producer.js";
+import { sendInterviewScheduledEmail } from "./email.service.js";
 
 interface UserContext {
   id: string;
@@ -118,7 +118,7 @@ export const assignInterviewer = async (
 
   const organization = await organizationRepository.findById(user.organizationId);
 
-  await queueInterviewScheduledEmail({
+  const emailResult = await sendInterviewScheduledEmail({
     interviewerEmail: interviewer.email,
     interviewerName: interviewer.name || "Interviewer",
     candidateName: candidate.name,
@@ -126,6 +126,9 @@ export const assignInterviewer = async (
     scheduledAt: scheduledAt || new Date(),
     organizationName: organization?.name || "HireLens",
   });
+  if (!emailResult.success) {
+    throw new ApiError(502, "Unable to send interview email. Please try again later.");
+  }
 
   return populatedInterview;
 };

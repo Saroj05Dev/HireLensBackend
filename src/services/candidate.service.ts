@@ -10,7 +10,7 @@ import * as jobRepository from "../repositories/job.repository.js";
 import * as decisionLogRepository from "../repositories/decisionLog.repository.js";
 import * as interviewRepository from "../repositories/interview.repository.js";
 import * as organizationRepository from "../repositories/organization.repository.js";
-import { queueStageChangeEmail } from "../queues/email.producer.js";
+import { sendStageChangeEmail } from "./email.service.js";
 import { invalidateJobsCache } from "./job.service.js";
 
 const require = createRequire(import.meta.url);
@@ -437,7 +437,7 @@ export const updateCandidateStage = async (
         organizationRepository.findById(user.organizationId),
       ]);
 
-      await queueStageChangeEmail({
+      const emailResult = await sendStageChangeEmail({
         candidateEmail: candidate.email,
         candidateName: candidate.name,
         jobTitle: job?.title || "the position",
@@ -446,6 +446,9 @@ export const updateCandidateStage = async (
         organizationName: organization?.name || "HireLens",
         note,
       });
+      if (!emailResult.success) {
+        throw new ApiError(502, "Unable to send stage change email. Please try again later.");
+      }
     }
 
     return {
