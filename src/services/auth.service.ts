@@ -11,6 +11,7 @@ import { generateToken, AuthTokens } from "../utils/tokenService.js";
 import { sendOTPEmail } from "./email.service.js";
 import { getIO } from "../config/socket.js";
 import ApiError from "../utils/ApiError.js";
+import { isTokenRevoked } from "../utils/tokenBlacklist.js";
 
 const generateOTP = (): string => {
   return crypto.randomInt(100000, 999999).toString();
@@ -309,6 +310,10 @@ export const refresh = async (cookies: Record<string, any>, refreshTokenFallback
     const refreshSecret: Secret = process.env.JWT_REFRESH_SECRET || "";
     const decoded = jwt.verify(refreshToken, refreshSecret) as any;
 
+    if (await isTokenRevoked(refreshToken)) {
+      throw new ApiError(401, "Refresh token has been revoked. Please log in again.");
+    }
+
     const newAccessToken = generateToken({
       userId: decoded.userId,
       role: decoded.role,
@@ -318,7 +323,11 @@ export const refresh = async (cookies: Record<string, any>, refreshTokenFallback
     return {
       accessToken: newAccessToken,
     };
-  } catch {
+  } catch (error) {
+    if (error instanceof ApiError) {
+      throw error;
+    }
+
     throw new ApiError(401, "Invalid or expired refresh token");
   }
 };

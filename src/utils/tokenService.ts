@@ -1,4 +1,5 @@
 import jwt, { type SignOptions, type Secret } from "jsonwebtoken";
+import crypto from "crypto";
 import { SERVER_CONFIG } from "../config/server.config.js";
 
 export interface TokenPayload {
@@ -20,10 +21,12 @@ export const generateToken = (payload: TokenPayload): AuthTokens => {
 
   const accessOptions: SignOptions = {
     expiresIn: "15m",
+    jwtid: crypto.randomUUID(),
   };
 
   const refreshOptions: SignOptions = {
     expiresIn: "7d",
+    jwtid: crypto.randomUUID(),
   };
 
   const accessToken = jwt.sign(payload, accessSecret, accessOptions);

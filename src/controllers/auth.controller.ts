@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from "express";
 import * as authService from "../services/auth.service.js";
 import * as organizationService from "../services/organization.service.js";
+import { revokeToken } from "../utils/tokenBlacklist.js";
 
 export const sendOTP = async (req: Request, res: Response, next: NextFunction) => {
   try {
@@ -156,7 +157,13 @@ export const login = async (req: Request, res: Response, next: NextFunction) => 
 };
 
 export const logout = async (req: Request, res: Response, next: NextFunction) => {
-  const isProduction = process.env.NODE_ENV === "production";
+  try {
+    const tokens = [req.cookies?.accessToken, req.cookies?.refreshToken, req.body?.refreshToken]
+      .filter((token): token is string => typeof token === "string" && token.length > 0);
+
+    await Promise.all(tokens.map(revokeToken));
+
+    const isProduction = process.env.NODE_ENV === "production";
 
   // Temporarily use lax for all environments to test incognito mode
   const cookieOptions = {
@@ -166,13 +173,16 @@ export const logout = async (req: Request, res: Response, next: NextFunction) =>
     path: "/",
   };
 
-  res.clearCookie("accessToken", cookieOptions);
-  res.clearCookie("refreshToken", cookieOptions);
+    res.clearCookie("accessToken", cookieOptions);
+    res.clearCookie("refreshToken", cookieOptions);
 
-  return res.status(200).json({
-    success: true,
-    message: "Logout successful",
-  });
+    return res.status(200).json({
+      success: true,
+      message: "Logout successful",
+    });
+  } catch (error) {
+    next(error);
+  }
 };
 
 export const refresh = async (req: Request, res: Response, next: NextFunction) => {

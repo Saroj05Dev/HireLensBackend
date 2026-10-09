@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from "express";
 import jwt, { Secret, JwtPayload } from "jsonwebtoken";
 import {  SERVER_CONFIG } from "../config/server.config.js";
 import ApiError from "../utils/ApiError.js";
+import { isTokenRevoked } from "../utils/tokenBlacklist.js";
 
 interface DecodedToken {
     userId: string;
@@ -9,7 +10,7 @@ interface DecodedToken {
     organizationId: string;
 }
 
-const authMiddleware = (req: Request, res: Response, next: NextFunction): void => {
+const authMiddleware = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
         // First try to get token from cookies (preferred method)
         let token = req.cookies?.accessToken;
@@ -33,6 +34,10 @@ const authMiddleware = (req: Request, res: Response, next: NextFunction): void =
             secret
         ) as DecodedToken;
 
+        if (await isTokenRevoked(token)) {
+            throw new ApiError(401, "Session has been revoked. Please log in again.");
+        }
+
         // Attach user info to request
         req.user = {
             id: decoded.userId,
@@ -43,7 +48,9 @@ const authMiddleware = (req: Request, res: Response, next: NextFunction): void =
         next();
 
     } catch (error: any) {
-        if(error.name === "TokenExpiredError") {
+        if (error instanceof ApiError && error.statusCode === 503) {
+            next(error);
+        } else if(error.name === "TokenExpiredError") {
             next(new ApiError(401, "Session expired. Please log in again."));
         } else {
             next(new ApiError(401, "Unauthorized request"));
