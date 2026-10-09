@@ -3,12 +3,14 @@ import http from "http";
 import cookieParser from "cookie-parser";
 import cors from "cors";
 import rateLimit from "express-rate-limit";
+import { RedisStore } from "rate-limit-redis";
 import helmet from "helmet";
 import { SERVER_CONFIG } from "./config/server.config.js";
 import connectDB from "./config/db.config.js";
 import initSocket from "./config/socket.js";
 import { handleDatabaseError } from "./utils/errorHandler.js";
 import { connectRedis } from "./config/redis.js";
+import { redis } from "./config/redis.js";
 
 import authRoutes from "./routes/auth.routes.js";
 import jobRoutes from "./routes/job.routes.js";
@@ -24,10 +26,18 @@ const server = http.createServer(app);
 
 initSocket(server);
 
+const createRateLimitStore = (prefix: string): RedisStore =>
+  new RedisStore({
+    prefix,
+    sendCommand: (...args: string[]) => redis.sendCommand(args),
+  });
+
 // Rate limiting - Very generous limits for production
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 10000, // 10,000 requests per 15 minutes
+  store: createRateLimitStore("rate-limit:global:"),
+  passOnStoreError: true,
   message: "Too many requests from this IP, please try again later.",
   standardHeaders: true,
   legacyHeaders: false,
@@ -40,6 +50,8 @@ app.use(limiter);
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 100,
+  store: createRateLimitStore("rate-limit:auth:"),
+  passOnStoreError: true,
   message: "Too many authentication attempts, please try again later.",
 });
 
