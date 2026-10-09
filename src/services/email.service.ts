@@ -71,7 +71,7 @@ const wrap = (headerBg: string, headerContent: string, bodyContent: string): str
 </body>
 </html>`;
 
-interface InviteEmailParams {
+export interface InviteEmailParams {
   email: string;
   role: "RECRUITER" | "INTERVIEWER" | string;
   organizationName: string;
@@ -413,7 +413,7 @@ const buildStageChangeHtml = ({
   );
 };
 
-interface OTPEmailParams {
+export interface OTPEmailParams {
   email: string;
   otp: string;
   purpose?: "SIGNUP" | "PASSWORD_RESET" | string;
@@ -492,8 +492,6 @@ export const sendOTPEmail = async ({ email, otp, purpose = "SIGNUP" }: OTPEmailP
   }
 
   try {
-    console.log(`[Email] Sending ${purpose} OTP email to ${email}...`);
-
     const sendSmtpEmail = new brevo.SendSmtpEmail();
     sendSmtpEmail.sender = { email: FROM };
     sendSmtpEmail.to = [{ email }];
@@ -506,7 +504,6 @@ export const sendOTPEmail = async ({ email, otp, purpose = "SIGNUP" }: OTPEmailP
     const data = await apiInstance.sendTransacEmail(sendSmtpEmail);
     const messageId = (data.body as { messageId?: string })?.messageId || "unknown";
 
-    console.log(`[Email] ${purpose} OTP sent to ${email} (id: ${messageId})`);
     return { success: true, id: messageId };
   }catch (err: any) {
     console.error("[Email] Detailed Brevo Error:", {
@@ -530,8 +527,6 @@ export const sendInviteEmail = async ({
   }
 
   try {
-    console.log(`[Email] Sending invite email to ${email}...`);
-
     const sendSmtpEmail = new brevo.SendSmtpEmail();
     sendSmtpEmail.sender = { email: FROM };
     sendSmtpEmail.to = [{ email }];
@@ -541,7 +536,6 @@ export const sendInviteEmail = async ({
     const data = await apiInstance.sendTransacEmail(sendSmtpEmail);
     const messageId = (data.body as { messageId?: string })?.messageId || "unknown";
 
-    console.log(`[Email] Invite sent to ${email} (id: ${messageId})`);
     return { success: true, id: messageId };
   } catch (err: any) {
     console.error("[Email] Failed to send invite email:", err.message);
@@ -549,7 +543,7 @@ export const sendInviteEmail = async ({
   }
 };
 
-interface InterviewScheduleParams {
+export interface InterviewScheduleParams {
   interviewerEmail: string;
   interviewerName: string;
   candidateName: string;
@@ -572,8 +566,6 @@ export const sendInterviewScheduledEmail = async ({
   }
 
   try {
-    console.log(`[Email] Sending interview scheduled email to ${interviewerEmail}...`);
-
     const sendSmtpEmail = new brevo.SendSmtpEmail();
     sendSmtpEmail.sender = { email: FROM };
     sendSmtpEmail.to = [{ email: interviewerEmail }];
@@ -589,7 +581,6 @@ export const sendInterviewScheduledEmail = async ({
     const data = await apiInstance.sendTransacEmail(sendSmtpEmail);
     const messageId = (data.body as { messageId?: string })?.messageId || "unknown";
 
-    console.log(`[Email] Interview scheduled email sent to ${interviewerEmail} (id: ${messageId})`);
     return { success: true, id: messageId };
   } catch (err: any) {
     console.error("[Email] Failed to send interview email:", err.message);
@@ -597,7 +588,7 @@ export const sendInterviewScheduledEmail = async ({
   }
 };
 
-interface SendStageChangeEmailParams {
+export interface SendStageChangeEmailParams {
   candidateEmail?: string;
   candidateName: string;
   jobTitle: string;
@@ -624,8 +615,6 @@ export const sendStageChangeEmail = async ({
   }
 
   try {
-    console.log(`[Email] Sending stage change email to ${candidateEmail}...`);
-
     const sendSmtpEmail = new brevo.SendSmtpEmail();
     sendSmtpEmail.sender = { email: FROM };
     sendSmtpEmail.to = [{ email: candidateEmail }];
@@ -642,7 +631,6 @@ export const sendStageChangeEmail = async ({
     const data = await apiInstance.sendTransacEmail(sendSmtpEmail);
     const messageId = (data.body as { messageId?: string })?.messageId || "unknown";
 
-    console.log(`[Email] Stage change email sent to ${candidateEmail} (id: ${messageId})`);
     return { success: true, id: messageId };
   } catch (err: any) {
     console.error("[Email] Failed to send stage change email:", err.message);

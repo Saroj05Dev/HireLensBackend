@@ -24,9 +24,7 @@ export const getJobs = async (req: Request, res: Response, next: NextFunction) =
     if (!req.user?.organizationId) {
       return res.status(401).json({ success: false, message: "Unauthorized request" });
     }
-
     const jobs = await jobService.getOrganizationJobs(req.user.organizationId);
-    console.log('Jobs being returned to frontend:', JSON.stringify(jobs, null, 2));
 
     res.status(200).json({
       success: true,

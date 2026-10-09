@@ -10,7 +10,8 @@ import * as jobRepository from "../repositories/job.repository.js";
 import * as decisionLogRepository from "../repositories/decisionLog.repository.js";
 import * as interviewRepository from "../repositories/interview.repository.js";
 import * as organizationRepository from "../repositories/organization.repository.js";
-import { sendStageChangeEmail } from "./email.service.js";
+import { queueStageChangeEmail } from "../queues/email.producer.js";
+import { invalidateJobsCache } from "./job.service.js";
 
 const require = createRequire(import.meta.url);
 const pdfParsePackage = require("pdf-parse");
@@ -249,6 +250,8 @@ export const addCandidate = async (
     addedById: user.id,
   });
 
+  await invalidateJobsCache(user.organizationId);
+
   return serializeCandidate(candidate);
 };
 
@@ -335,12 +338,9 @@ export const updateCandidateStage = async (
   }
 
   return prisma.$transaction(async (tx) => {
-    console.log("[DEBUG] updateCandidateStage - candidateId:", candidateId, "length:", candidateId.length);
     const candidate = await candidateRepository.findById(candidateId, tx);
-    console.log("[DEBUG] updateCandidateStage - candidate found:", !!candidate);
 
     if (!candidate || candidate.organizationId !== user.organizationId) {
-      console.log("[DEBUG] Candidate not found or org mismatch. candidate:", !!candidate, "orgId:", candidate?.organizationId, "userOrgId:", user.organizationId);
       throw new ApiError(404, "Candidate not found");
     }
 
@@ -432,22 +432,20 @@ export const updateCandidateStage = async (
     });
 
     if (candidate.email) {
-      Promise.all([
+      const [job, organization] = await Promise.all([
         jobRepository.findById(candidate.jobId),
         organizationRepository.findById(user.organizationId),
-      ])
-        .then(([job, organization]) => {
-          sendStageChangeEmail({
-            candidateEmail: candidate.email,
-            candidateName: candidate.name,
-            jobTitle: job?.title || "the position",
-            fromStage,
-            toStage: newStage,
-            organizationName: organization?.name || "HireLens",
-            note,
-          });
-        })
-        .catch((err) => console.error("[Email] Stage change email error:", err));
+      ]);
+
+      await queueStageChangeEmail({
+        candidateEmail: candidate.email,
+        candidateName: candidate.name,
+        jobTitle: job?.title || "the position",
+        fromStage,
+        toStage: newStage,
+        organizationName: organization?.name || "HireLens",
+        note,
+      });
     }
 
     return {

@@ -8,7 +8,7 @@ import * as userRepository from "../repositories/user.repository.js";
 import * as inviteRepository from "../repositories/invite.repository.js";
 import * as otpRepository from "../repositories/otp.repository.js";
 import { generateToken, AuthTokens } from "../utils/tokenService.js";
-import { sendOTPEmail } from "./email.service.js";
+import { queueOtpEmail } from "../queues/email.producer.js";
 import { getIO } from "../config/socket.js";
 import ApiError from "../utils/ApiError.js";
 
@@ -26,6 +26,14 @@ export const sendSignupOTP = async ({ email }: { email: string }) => {
     throw new ApiError(409, "User with this email already exists");
   }
 
+  const canSend = await otpRepository.consumeSendAttempt(email, "SIGNUP");
+  if (!canSend) {
+    throw new ApiError(
+      429,
+      "Too many OTP requests. Please try again in 10 minutes."
+    );
+  }
+
   const otp = generateOTP();
 
   await otpRepository.create({
@@ -34,11 +42,7 @@ export const sendSignupOTP = async ({ email }: { email: string }) => {
     purpose: "SIGNUP",
   });
 
-  const emailResult = await sendOTPEmail({ email, otp });
-
-  if (!emailResult.success) {
-    throw new ApiError(500, "Failed to send OTP email");
-  }
+  await queueOtpEmail({ email, otp, purpose: "SIGNUP" });
 
   return {
     message: "OTP sent successfully",
@@ -51,17 +55,19 @@ export const verifySignupOTP = async ({ email, otp }: { email: string; otp: stri
     throw new ApiError(400, "Email and OTP are required");
   }
 
-  const otpRecord = await otpRepository.findValidOTP(email, "SIGNUP");
-
-  if (!otpRecord) {
-    throw new ApiError(401, "Invalid or expired OTP");
+  const canVerify = await otpRepository.consumeVerifyAttempt(email, "SIGNUP");
+  if (!canVerify) {
+    throw new ApiError(
+      429,
+      "Too many verification attempts. Please try again in 10 minutes."
+    );
   }
 
-  if (otpRecord.otp !== otp) {
-    throw new ApiError(401, "Invalid OTP");
-  }
+  const isValid = await otpRepository.verify(email, otp, "SIGNUP");
 
-  await otpRepository.markVerified(otpRecord.id);
+  if (!isValid) {
+    throw new ApiError(400, "Invalid or expired OTP");
+  }
 
   return {
     message: "Email verified successfully",
@@ -73,6 +79,17 @@ export const verifySignupOTP = async ({ email, otp }: { email: string; otp: stri
 export const sendPasswordResetOTP = async ({ email }: { email: string }) => {
   if (!email) {
     throw new ApiError(400, "Email is required");
+  }
+
+  const canSend = await otpRepository.consumeSendAttempt(
+    email,
+    "PASSWORD_RESET"
+  );
+  if (!canSend) {
+    throw new ApiError(
+      429,
+      "Too many OTP requests. Please try again in 10 minutes."
+    );
   }
 
   const user = await userRepository.findByEmail(email);
@@ -91,11 +108,7 @@ export const sendPasswordResetOTP = async ({ email }: { email: string }) => {
     purpose: "PASSWORD_RESET",
   });
 
-  const emailResult = await sendOTPEmail({ email, otp, purpose: "PASSWORD_RESET" });
-
-  if (!emailResult.success) {
-    throw new ApiError(500, "Failed to send password reset email");
-  }
+  await queueOtpEmail({ email, otp, purpose: "PASSWORD_RESET" });
 
   return {
     message: "Password reset code sent successfully",
@@ -108,17 +121,26 @@ export const verifyPasswordResetOTP = async ({ email, otp }: { email: string; ot
     throw new ApiError(400, "Email and OTP are required");
   }
 
-  const otpRecord = await otpRepository.findValidOTP(email, "PASSWORD_RESET");
-
-  if (!otpRecord) {
-    throw new ApiError(401, "Invalid or expired OTP");
+  const canVerify = await otpRepository.consumeVerifyAttempt(
+    email,
+    "PASSWORD_RESET"
+  );
+  if (!canVerify) {
+    throw new ApiError(
+      429,
+      "Too many verification attempts. Please try again in 10 minutes."
+    );
   }
 
-  if (otpRecord.otp !== otp) {
-    throw new ApiError(401, "Invalid OTP");
-  }
+  const isValid = await otpRepository.verify(
+    email,
+    otp,
+    "PASSWORD_RESET"
+  );
 
-  await otpRepository.markVerified(otpRecord.id);
+  if (!isValid) {
+    throw new ApiError(400, "Invalid or expired OTP");
+  }
 
   return {
     message: "OTP verified successfully",
@@ -140,6 +162,14 @@ export const resetPassword = async ({ email, newPassword }: { email: string; new
   const user = await userRepository.findByEmail(email);
   if (!user) {
     throw new ApiError(404, "User not found");
+  }
+
+  // Prevent reusing the current password
+  if (user.password) {
+    const isSamePassword = await bcrypt.compare(newPassword, user.password);
+    if (isSamePassword) {
+      throw new ApiError(400, "New password must be different from your current password");
+    }
   }
 
   const hashedPassword = await bcrypt.hash(newPassword, 10);
@@ -199,7 +229,7 @@ export const register = async ({
       organizationId: user.organizationId,
     });
 
-    await otpRepository.deleteByEmail(email, "SIGNUP", tx);
+    await otpRepository.deleteByEmail(email, "SIGNUP");
 
     return {
       user: {
