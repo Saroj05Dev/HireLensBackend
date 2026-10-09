@@ -62,10 +62,6 @@ worker.on("ready", () => {
   console.log("[Email Worker] Ready");
 });
 
-worker.on("completed", (job) => {
-  console.log(`[Email Worker] Completed ${job.name} job ${job.id}`);
-});
-
 worker.on("failed", (job, error) => {
   console.error(
     `[Email Worker] Failed ${job?.name ?? "unknown"} job ${job?.id ?? "unknown"}:`,

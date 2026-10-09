@@ -23,20 +23,12 @@ const initSocket = (httpServer: HttpServer): Server => {
   });
 
   io.on("connection", (socket: Socket) => {
-    console.log("Socket connected:", socket.id);
-
     socket.on("join:organization", (organizationId: string) => {
       socket.join(`org:${organizationId}`);
-      console.log(`Socket joined org:${organizationId}`);
     });
 
     socket.on("join:user", (userId: string) => {
       socket.join(`user:${userId}`);
-      console.log(`Socket joined user:${userId}`);
-    });
-
-    socket.on("disconnect", () => {
-      console.log("Socket disconnected:", socket.id);
     });
   });
 

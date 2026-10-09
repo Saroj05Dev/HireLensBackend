@@ -1,6 +1,17 @@
+import { redis } from "../config/redis.js";
 import { JobStatus } from "@prisma/client";
 import * as jobRepository from "../repositories/job.repository.js";
 import ApiError from "../utils/ApiError.js";
+
+const JOBS_CACHE_TTL_SECONDS = 5 * 60; // 5 minutes
+
+const jobsCacheKey = (organizationId: string): string => {
+  return `cache:jobs:${organizationId}`;
+};
+
+export const invalidateJobsCache = async (organizationId: string): Promise<void> => {
+  await redis.del(jobsCacheKey(organizationId));
+};
 
 interface UserContext {
   id: string;
@@ -41,6 +52,8 @@ export const createJob = async (user: UserContext, jobData: JobPayload) => {
     status: JobStatus.OPEN,
   });
 
+  await invalidateJobsCache(user.organizationId);
+
   return {
     id: job.id,
     title: job.title,
@@ -55,9 +68,17 @@ export const createJob = async (user: UserContext, jobData: JobPayload) => {
 };
 
 export const getOrganizationJobs = async (organizationId: string) => {
+  const cacheKey = jobsCacheKey(organizationId);
+
+  const cachedJobs = await redis.get(cacheKey);
+
+  if (cachedJobs) {
+    return JSON.parse(cachedJobs);
+  }
+
   const jobs = await jobRepository.findByOrganizationId(organizationId);
 
-  return jobs.map((job) => ({
+  const result = jobs.map((job) => ({
     id: job.id,
     title: job.title,
     description: job.description,
@@ -73,6 +94,12 @@ export const getOrganizationJobs = async (organizationId: string) => {
     createdAt: job.createdAt,
     updatedAt: job.updatedAt,
   }));
+
+  await redis.set(cacheKey, JSON.stringify(result), {
+    EX: JOBS_CACHE_TTL_SECONDS,
+  });
+
+  return result;
 };
 
 export const closeJob = async (user: UserContext, jobId: string) => {
@@ -95,6 +122,8 @@ export const closeJob = async (user: UserContext, jobId: string) => {
   if (!updatedJob) {
     throw new ApiError(500, "Failed to update job status");
   }
+
+  await invalidateJobsCache(user.organizationId);
 
   return {
     id: updatedJob.id,
@@ -130,6 +159,8 @@ export const reopenJob = async (user: UserContext, jobId: string) => {
   if (!updatedJob) {
     throw new ApiError(500, "Failed to update job status");
   }
+
+  await invalidateJobsCache(user.organizationId);
 
   return {
     id: updatedJob.id,
@@ -205,6 +236,8 @@ export const updateJob = async (user: UserContext, jobId: string, jobData: JobPa
     throw new ApiError(500, "Failed to update job");
   }
 
+  await invalidateJobsCache(user.organizationId);
+
   return {
     id: updatedJob.id,
     title: updatedJob.title,
@@ -231,6 +264,7 @@ export const deleteJob = async (user: UserContext, jobId: string) => {
   }
 
   await jobRepository.deleteById(jobId);
+  await invalidateJobsCache(user.organizationId);
 
   return {
     id: job.id,

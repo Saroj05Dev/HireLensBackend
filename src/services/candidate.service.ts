@@ -11,6 +11,7 @@ import * as decisionLogRepository from "../repositories/decisionLog.repository.j
 import * as interviewRepository from "../repositories/interview.repository.js";
 import * as organizationRepository from "../repositories/organization.repository.js";
 import { queueStageChangeEmail } from "../queues/email.producer.js";
+import { invalidateJobsCache } from "./job.service.js";
 
 const require = createRequire(import.meta.url);
 const pdfParsePackage = require("pdf-parse");
@@ -248,6 +249,8 @@ export const addCandidate = async (
     jobId,
     addedById: user.id,
   });
+
+  await invalidateJobsCache(user.organizationId);
 
   return serializeCandidate(candidate);
 };
