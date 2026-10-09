@@ -1,5 +1,34 @@
 import * as decisionLogRepository from "../repositories/decisionLog.repository.js";
 import * as analyticsRepository from "../repositories/analytics.repository.js";
+import { deleteCached, getCached, setCached } from "../utils/cache.js";
+
+const ANALYTICS_CACHE_TTL_SECONDS = 60;
+const RECENT_ACTIVITY_CACHE_TTL_SECONDS = 30;
+
+const dashboardStatsKey = (organizationId: string) =>
+  `cache:analytics:dashboard-stats:${organizationId}`;
+const recentActivityKey = (organizationId: string, limit: number) =>
+  `cache:analytics:recent-activity:${organizationId}:${limit}`;
+const candidatesByStageKey = (organizationId: string) =>
+  `cache:analytics:candidates-by-stage:${organizationId}`;
+const jobFunnelKey = (organizationId: string, jobId: string) =>
+  `cache:analytics:job-funnel:${organizationId}:${jobId}`;
+
+export const invalidateAnalyticsCache = async (
+  organizationId: string,
+  jobIds: string[] = []
+): Promise<void> => {
+  const keys = [
+    dashboardStatsKey(organizationId),
+    candidatesByStageKey(organizationId),
+    ...Array.from({ length: 50 }, (_, index) =>
+      recentActivityKey(organizationId, index + 1)
+    ),
+    ...jobIds.map((jobId) => jobFunnelKey(organizationId, jobId)),
+  ];
+
+  await deleteCached(...keys);
+};
 
 interface UserContext {
   organizationId: string;
@@ -37,6 +66,12 @@ export const getCandidateTimeInStage = async (user: UserContext, candidateId: st
 };
 
 export const getJobFunnel = async (user: UserContext, jobId: string) => {
+  const cacheKey = jobFunnelKey(user.organizationId, jobId);
+  const cachedFunnel = await getCached<{ jobId: string; funnel: Record<string, number> }>(
+    cacheKey
+  );
+  if (cachedFunnel) return cachedFunnel;
+
   const logs = await decisionLogRepository.findStageChangesByJob(
     jobId,
     user.organizationId
@@ -58,7 +93,9 @@ export const getJobFunnel = async (user: UserContext, jobId: string) => {
     funnel[stage] = funnelMap[stage].size;
   }
 
-  return { jobId, funnel };
+  const result = { jobId, funnel };
+  await setCached(cacheKey, result, ANALYTICS_CACHE_TTL_SECONDS);
+  return result;
 };
 
 export const getPipelineSummary = async (user: UserContext) => {
@@ -187,13 +224,41 @@ export const getOrganizationTimeToHire = async (user: UserContext) => {
 };
 
 export const getDashboardStats = async (user: UserContext) => {
-  return await analyticsRepository.getDashboardStats(user.organizationId);
+  const cacheKey = dashboardStatsKey(user.organizationId);
+  const cachedStats = await getCached<
+    Awaited<ReturnType<typeof analyticsRepository.getDashboardStats>>
+  >(cacheKey);
+  if (cachedStats) return cachedStats;
+
+  const stats = await analyticsRepository.getDashboardStats(user.organizationId);
+  await setCached(cacheKey, stats, ANALYTICS_CACHE_TTL_SECONDS);
+  return stats;
 };
 
 export const getRecentActivity = async (user: UserContext, limit: number = 10) => {
-  return await analyticsRepository.getRecentActivity(user.organizationId, limit);
+  const safeLimit = Math.min(Math.max(Math.trunc(limit) || 10, 1), 50);
+  const cacheKey = recentActivityKey(user.organizationId, safeLimit);
+  const cachedActivity = await getCached<
+    Awaited<ReturnType<typeof analyticsRepository.getRecentActivity>>
+  >(cacheKey);
+  if (cachedActivity) return cachedActivity;
+
+  const activity = await analyticsRepository.getRecentActivity(
+    user.organizationId,
+    safeLimit
+  );
+  await setCached(cacheKey, activity, RECENT_ACTIVITY_CACHE_TTL_SECONDS);
+  return activity;
 };
 
 export const getCandidatesByStage = async (user: UserContext) => {
-  return await analyticsRepository.getCandidatesByStage(user.organizationId);
+  const cacheKey = candidatesByStageKey(user.organizationId);
+  const cachedStages = await getCached<
+    Awaited<ReturnType<typeof analyticsRepository.getCandidatesByStage>>
+  >(cacheKey);
+  if (cachedStages) return cachedStages;
+
+  const stages = await analyticsRepository.getCandidatesByStage(user.organizationId);
+  await setCached(cacheKey, stages, ANALYTICS_CACHE_TTL_SECONDS);
+  return stages;
 };

@@ -1,7 +1,8 @@
-import { redis } from "../config/redis.js";
 import { JobStatus } from "@prisma/client";
 import * as jobRepository from "../repositories/job.repository.js";
 import ApiError from "../utils/ApiError.js";
+import { deleteCached, getCached, setCached } from "../utils/cache.js";
+import { invalidateAnalyticsCache } from "./analytics.service.js";
 
 const JOBS_CACHE_TTL_SECONDS = 5 * 60; // 5 minutes
 
@@ -10,7 +11,7 @@ const jobsCacheKey = (organizationId: string): string => {
 };
 
 export const invalidateJobsCache = async (organizationId: string): Promise<void> => {
-  await redis.del(jobsCacheKey(organizationId));
+  await deleteCached(jobsCacheKey(organizationId));
 };
 
 interface UserContext {
@@ -53,6 +54,7 @@ export const createJob = async (user: UserContext, jobData: JobPayload) => {
   });
 
   await invalidateJobsCache(user.organizationId);
+  await invalidateAnalyticsCache(user.organizationId);
 
   return {
     id: job.id,
@@ -70,15 +72,22 @@ export const createJob = async (user: UserContext, jobData: JobPayload) => {
 export const getOrganizationJobs = async (organizationId: string) => {
   const cacheKey = jobsCacheKey(organizationId);
 
-  const cachedJobs = await redis.get(cacheKey);
+  const cachedJobs = await getCached<ReturnType<typeof mapJob>[]>(cacheKey);
 
   if (cachedJobs) {
-    return JSON.parse(cachedJobs);
+    return cachedJobs;
   }
 
   const jobs = await jobRepository.findByOrganizationId(organizationId);
 
-  const result = jobs.map((job) => ({
+  const result = jobs.map(mapJob);
+
+  await setCached(cacheKey, result, JOBS_CACHE_TTL_SECONDS);
+
+  return result;
+};
+
+const mapJob = (job: any) => ({
     id: job.id,
     title: job.title,
     description: job.description,
@@ -93,14 +102,7 @@ export const getOrganizationJobs = async (organizationId: string) => {
     candidateCount: (job as any)._count?.candidates || 0,
     createdAt: job.createdAt,
     updatedAt: job.updatedAt,
-  }));
-
-  await redis.set(cacheKey, JSON.stringify(result), {
-    EX: JOBS_CACHE_TTL_SECONDS,
-  });
-
-  return result;
-};
+});
 
 export const closeJob = async (user: UserContext, jobId: string) => {
   const job = await jobRepository.findById(jobId);
@@ -124,6 +126,7 @@ export const closeJob = async (user: UserContext, jobId: string) => {
   }
 
   await invalidateJobsCache(user.organizationId);
+  await invalidateAnalyticsCache(user.organizationId);
 
   return {
     id: updatedJob.id,
@@ -161,6 +164,7 @@ export const reopenJob = async (user: UserContext, jobId: string) => {
   }
 
   await invalidateJobsCache(user.organizationId);
+  await invalidateAnalyticsCache(user.organizationId);
 
   return {
     id: updatedJob.id,
@@ -237,6 +241,7 @@ export const updateJob = async (user: UserContext, jobId: string, jobData: JobPa
   }
 
   await invalidateJobsCache(user.organizationId);
+  await invalidateAnalyticsCache(user.organizationId);
 
   return {
     id: updatedJob.id,
@@ -265,6 +270,7 @@ export const deleteJob = async (user: UserContext, jobId: string) => {
 
   await jobRepository.deleteById(jobId);
   await invalidateJobsCache(user.organizationId);
+  await invalidateAnalyticsCache(user.organizationId, [jobId]);
 
   return {
     id: job.id,

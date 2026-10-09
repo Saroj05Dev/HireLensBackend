@@ -11,6 +11,7 @@ import * as notificationService from "./notification.service.js";
 import * as jobRepository from "../repositories/job.repository.js";
 import * as organizationRepository from "../repositories/organization.repository.js";
 import { sendInterviewScheduledEmail } from "./email.service.js";
+import { invalidateAnalyticsCache } from "./analytics.service.js";
 
 interface UserContext {
   id: string;
@@ -130,6 +131,7 @@ export const assignInterviewer = async (
     throw new ApiError(502, "Unable to send interview email. Please try again later.");
   }
 
+  await invalidateAnalyticsCache(user.organizationId, [candidate.jobId]);
   return populatedInterview;
 };
 
@@ -154,7 +156,7 @@ export const submitFeedback = async (
     throw new ApiError(403, "Not authorized to submit feedback");
   }
 
-  return prisma.$transaction(async (tx) => {
+  const result = await prisma.$transaction(async (tx) => {
     const feedback = await feedbackRepository.create(
       {
         interviewId,
@@ -235,6 +237,9 @@ export const submitFeedback = async (
 
     return feedback;
   });
+
+  await invalidateAnalyticsCache(user.organizationId, [interview.jobId]);
+  return result;
 };
 
 export const getMyInterviews = async (user: UserContext) => {

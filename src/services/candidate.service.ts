@@ -12,6 +12,7 @@ import * as interviewRepository from "../repositories/interview.repository.js";
 import * as organizationRepository from "../repositories/organization.repository.js";
 import { sendStageChangeEmail } from "./email.service.js";
 import { invalidateJobsCache } from "./job.service.js";
+import { invalidateAnalyticsCache } from "./analytics.service.js";
 
 const require = createRequire(import.meta.url);
 const pdfParsePackage = require("pdf-parse");
@@ -251,6 +252,7 @@ export const addCandidate = async (
   });
 
   await invalidateJobsCache(user.organizationId);
+  await invalidateAnalyticsCache(user.organizationId, [jobId]);
 
   return serializeCandidate(candidate);
 };
@@ -337,7 +339,9 @@ export const updateCandidateStage = async (
     throw new ApiError(400, "Invalid stage");
   }
 
-  return prisma.$transaction(async (tx) => {
+  let affectedJobId: string | undefined;
+
+  const result = await prisma.$transaction(async (tx) => {
     const candidate = await candidateRepository.findById(candidateId, tx);
 
     if (!candidate || candidate.organizationId !== user.organizationId) {
@@ -345,6 +349,7 @@ export const updateCandidateStage = async (
     }
 
     const fromStage = candidate.currentStage;
+    affectedJobId = candidate.jobId;
 
     if (fromStage === newStage) {
       throw new ApiError(400, "Candidate is already in this stage");
@@ -460,6 +465,12 @@ export const updateCandidateStage = async (
     maxWait: 10000,
     timeout: 15000,
   });
+
+  await invalidateAnalyticsCache(
+    user.organizationId,
+    affectedJobId ? [affectedJobId] : []
+  );
+  return result;
 };
 
 export const reopenCandidate = async (
@@ -467,7 +478,9 @@ export const reopenCandidate = async (
   candidateId: string,
   { note }: { note?: string } = {}
 ) => {
-  return prisma.$transaction(async (tx) => {
+  let affectedJobId: string | undefined;
+
+  const result = await prisma.$transaction(async (tx) => {
     const candidate = await candidateRepository.findById(candidateId, tx);
 
     if (!candidate || candidate.organizationId !== user.organizationId) {
@@ -480,6 +493,7 @@ export const reopenCandidate = async (
 
     const fromStage = CandidateStage.REJECTED;
     const toStage: CandidateStage = CandidateStage.APPLIED;
+    affectedJobId = candidate.jobId;
 
     await tx.candidate.update({
       where: { id: candidateId },
@@ -527,6 +541,12 @@ export const reopenCandidate = async (
       toStage,
     };
   });
+
+  await invalidateAnalyticsCache(
+    user.organizationId,
+    affectedJobId ? [affectedJobId] : []
+  );
+  return result;
 };
 
 export const getCandidateDecisionLogs = async (user: UserContext, candidateId: string) => {
