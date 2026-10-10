@@ -26,34 +26,8 @@ const server = http.createServer(app);
 
 initSocket(server);
 
-const createRateLimitStore = (prefix: string): RedisStore =>
-  new RedisStore({
-    prefix,
-    sendCommand: (...args: string[]) => redis.sendCommand(args),
-  });
-
-// Rate limiting - Very generous limits for production
-const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 10000, // 10,000 requests per 15 minutes
-  store: createRateLimitStore("rate-limit:global:"),
-  passOnStoreError: true,
-  message: "Too many requests from this IP, please try again later.",
-  standardHeaders: true,
-  legacyHeaders: false,
-});
-
-// Apply rate limiting to all routes
-app.use(limiter);
-
-// Rate limiting for auth routes
-const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100,
-  store: createRateLimitStore("rate-limit:auth:"),
-  passOnStoreError: true,
-  message: "Too many authentication attempts, please try again later.",
-});
+// authLimiter is declared here and assigned inside startServer() after Redis connects
+let authLimiter: ReturnType<typeof rateLimit>;
 
 // Security headers
 app.use(helmet());
@@ -123,16 +97,6 @@ app.get("/health", (req: Request, res: Response) => {
   });
 });
 
-// API Routes
-app.use("/api/v1/auth", authLimiter, authRoutes);
-app.use("/api/v1/jobs", jobRoutes);
-app.use("/api/v1/organizations", organizationRoutes);
-app.use("/api/v1/candidates", candidateRoutes);
-app.use("/api/v1/interviews", interviewRoutes);
-app.use("/api/v1/analytics", analyticsRoutes);
-app.use("/api/v1/notifications", notificationRoutes);
-app.use("/api/v1/profile", profileRoutes);
-
 // Global Error Handler (must be after all routes)
 app.use((err: any, req: Request, res: Response, next: NextFunction) => {
   if (err?.name === "MulterError") {
@@ -167,6 +131,44 @@ app.use((err: any, req: Request, res: Response, next: NextFunction) => {
 async function startServer() {
   try {
     await Promise.all([connectDB(), connectRedis()]);
+
+    // Redis is now connected — safe to create RedisStore instances
+    const createRateLimitStore = (prefix: string): RedisStore =>
+      new RedisStore({
+        prefix,
+        sendCommand: (...args: string[]) => redis.sendCommand(args),
+      });
+
+    // Global rate limiter — applied to all routes
+    const limiter = rateLimit({
+      windowMs: 15 * 60 * 1000, // 15 minutes
+      max: 10000, // 10,000 requests per 15 minutes
+      store: createRateLimitStore("rate-limit:global:"),
+      passOnStoreError: true,
+      message: "Too many requests from this IP, please try again later.",
+      standardHeaders: true,
+      legacyHeaders: false,
+    });
+    app.use(limiter);
+
+    // Auth route rate limiter
+    authLimiter = rateLimit({
+      windowMs: 15 * 60 * 1000, // 15 minutes
+      max: 100,
+      store: createRateLimitStore("rate-limit:auth:"),
+      passOnStoreError: true,
+      message: "Too many authentication attempts, please try again later.",
+    });
+
+    // API Routes — registered after Redis is ready so authLimiter is fully initialized
+    app.use("/api/v1/auth", authLimiter, authRoutes);
+    app.use("/api/v1/jobs", jobRoutes);
+    app.use("/api/v1/organizations", organizationRoutes);
+    app.use("/api/v1/candidates", candidateRoutes);
+    app.use("/api/v1/interviews", interviewRoutes);
+    app.use("/api/v1/analytics", analyticsRoutes);
+    app.use("/api/v1/notifications", notificationRoutes);
+    app.use("/api/v1/profile", profileRoutes);
 
     server.listen(SERVER_CONFIG.PORT, () => {
       console.log(`Server is running on port ${SERVER_CONFIG.PORT}`);
