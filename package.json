@@ -12,7 +12,8 @@
     "postinstall": "prisma generate",
     "seed": "tsx scripts/seed.ts",
     "reset": "tsx scripts/reset.ts",
-    "db:fresh": "npm run reset && npm run seed"
+    "db:fresh": "npm run reset && npm run seed",
+    "test": "vitest run"
   },
   "repository": {
     "type": "git",
@@ -61,6 +62,7 @@
     "@types/pg": "^8.23.1",
     "prisma": "^7.10.0",
     "tsx": "^4.19.0",
-    "typescript": "^5.6.0"
+    "typescript": "^5.6.0",
+    "vitest": "^5.0.4"
   }
 }
